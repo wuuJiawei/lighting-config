@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package lighting.config.v1;
+
+option java_multiple_files = true;
+option java_package = "io.lighting.config.link.proto";
+option java_outer_classname = "LightingConfigProto";
+
+// gRPC service exposed by lighting-config-server for watch/pull flows.
+service ConfigService {
+  // Establishes a streaming channel that pushes incremental updates.
+  rpc Watch(WatchRequest) returns (stream ConfigUpdate);
+  // Pulls either a single key or a prefix set on demand.
+  rpc Pull(PullRequest) returns (PullResponse);
+  // Lightweight liveness/metrics hook for clients.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+message WatchRequest {
+  string tenant = 1;
+  string namespace = 2;
+  string app_id = 3;
+  map<string, string> labels = 4;
+  map<string, string> meta = 5;
+  int64 last_version = 6;
+}
+
+message ConfigUpdate {
+  string tenant = 1;
+  string namespace = 2;
+  string app_id = 3;
+  string key = 4;
+  string value = 5;
+  string content_type = 6;
+  int64 version = 7;
+  bool deleted = 8;
+  int64 occurred_at = 9;
+}
+
+message PullRequest {
+  string tenant = 1;
+  string namespace = 2;
+  string app_id = 3;
+  oneof selector {
+    string key = 4;
+    string prefix = 5;
+  }
+  map<string, string> labels = 6;
+}
+
+message PullResponse {
+  repeated ConfigUpdate items = 1;
+}
+
+message HeartbeatRequest {
+  string tenant = 1;
+  string namespace = 2;
+  string app_id = 3;
+  map<string, string> meta = 4;
+}
+
+message HeartbeatResponse {
+  string status = 1;
+  int64 server_time = 2;
+}
