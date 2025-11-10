@@ -1,0 +1,160 @@
+package io.lighting.config.client.config;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Immutable configuration used by {@code LightingClient}.
+ */
+public final class ClientOptions {
+
+    private final String serverAddress;
+    private final boolean useTls;
+    private final String tenant;
+    private final String namespace;
+    private final String appId;
+    private final Map<String, String> labels;
+    private final Map<String, String> metadata;
+    private final List<String> bootstrapPrefixes;
+    private final Duration watchReconnectBackoff;
+
+    private ClientOptions(Builder builder) {
+        this.serverAddress = Objects.requireNonNull(builder.serverAddress, "serverAddress");
+        this.useTls = builder.useTls;
+        this.tenant = Objects.requireNonNull(builder.tenant, "tenant");
+        this.namespace = Objects.requireNonNull(builder.namespace, "namespace");
+        this.appId = Objects.requireNonNull(builder.appId, "appId");
+        this.labels = Collections.unmodifiableMap(new LinkedHashMap<>(builder.labels));
+        this.metadata = Collections.unmodifiableMap(new LinkedHashMap<>(builder.metadata));
+        this.bootstrapPrefixes = List.copyOf(builder.bootstrapPrefixes);
+        this.watchReconnectBackoff = builder.watchReconnectBackoff;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public String getServerAddress() {
+        return serverAddress;
+    }
+
+    public boolean isUseTls() {
+        return useTls;
+    }
+
+    public String getTenant() {
+        return tenant;
+    }
+
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public Map<String, String> getLabels() {
+        return labels;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public List<String> getBootstrapPrefixes() {
+        return bootstrapPrefixes;
+    }
+
+    public Duration getWatchReconnectBackoff() {
+        return watchReconnectBackoff;
+    }
+
+    public Builder toBuilder() {
+        return new Builder()
+                .serverAddress(serverAddress)
+                .useTls(useTls)
+                .tenant(tenant)
+                .namespace(namespace)
+                .appId(appId)
+                .labels(labels)
+                .metadata(metadata)
+                .bootstrapPrefixes(bootstrapPrefixes)
+                .watchReconnectBackoff(watchReconnectBackoff);
+    }
+
+    public static final class Builder {
+        private String serverAddress = "dns://localhost:9090";
+        private boolean useTls = false;
+        private String tenant = "default";
+        private String namespace = "default";
+        private String appId = "default";
+        private Map<String, String> labels = new LinkedHashMap<>();
+        private Map<String, String> metadata = new LinkedHashMap<>();
+        private List<String> bootstrapPrefixes = List.of();
+        private Duration watchReconnectBackoff = Duration.ofSeconds(5);
+
+        public Builder serverAddress(String serverAddress) {
+            this.serverAddress = serverAddress;
+            return this;
+        }
+
+        public Builder useTls(boolean useTls) {
+            this.useTls = useTls;
+            return this;
+        }
+
+        public Builder tenant(String tenant) {
+            this.tenant = tenant;
+            return this;
+        }
+
+        public Builder namespace(String namespace) {
+            this.namespace = namespace;
+            return this;
+        }
+
+        public Builder appId(String appId) {
+            this.appId = appId;
+            return this;
+        }
+
+        public Builder labels(Map<String, String> labels) {
+            this.labels = labels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(labels);
+            return this;
+        }
+
+        public Builder metadata(Map<String, String> metadata) {
+            this.metadata = metadata == null ? new LinkedHashMap<>() : new LinkedHashMap<>(metadata);
+            return this;
+        }
+
+        public Builder addLabel(String key, String value) {
+            this.labels.put(key, value);
+            return this;
+        }
+
+        public Builder addMetadata(String key, String value) {
+            this.metadata.put(key, value);
+            return this;
+        }
+
+        public Builder bootstrapPrefixes(List<String> prefixes) {
+            this.bootstrapPrefixes = prefixes == null ? List.of() : List.copyOf(prefixes);
+            return this;
+        }
+
+        public Builder watchReconnectBackoff(Duration duration) {
+            this.watchReconnectBackoff = duration == null ? Duration.ofSeconds(5) : duration;
+            return this;
+        }
+
+        public ClientOptions build() {
+            return new ClientOptions(this);
+        }
+    }
+}
