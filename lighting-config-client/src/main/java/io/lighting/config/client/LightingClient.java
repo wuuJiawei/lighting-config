@@ -6,24 +6,37 @@ import io.lighting.config.client.listener.ConfigListener;
 import io.lighting.config.client.listener.ListenerRegistry;
 import io.lighting.config.client.transport.ConfigTransport;
 import io.lighting.config.client.transport.ConfigTransport.WatchHandle;
+import io.lighting.config.core.dto.ClientMetadata;
 import io.lighting.config.core.dto.ConfigChange;
 import io.lighting.config.core.dto.ConfigSelector;
 import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.dto.WatchRequest;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.model.LabelSet;
-import io.lighting.config.core.dto.ClientMetadata;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Main entry point for interacting with the config server.
  */
 public class LightingClient implements AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(LightingClient.class);
+    private static final String BANNER =
+            "  _      _ _   _ _   _ _   _ _____ _____ _   _  _____ _____\n"
+                    + " | |    (_) | (_) | (_) \\ | |_   _|  __ \\ \\ | |/ ____|  __ \\\n"
+                    + " | |     _| |_ _| |_ _|  \\| | | | | |  | |\\| | |    | |__) |\n"
+                    + " | |    | | __| | __| | . ` | | | | |  | | . ` | |    |  _  /\n"
+                    + " | |____| | |_ | | |_ | |\\  |_| |_| |__| | |\\  | |____| | \\ \\\n"
+                    + " |______|_|\\__|/ |\\__|_| \\_|_____|_____/|_| \\_|\\_____|_|  \\_\\\n"
+                    + "              _/ |\n"
+                    + "             |__/";
 
     private final ClientOptions options;
     private final ConfigTransport transport;
@@ -50,8 +63,11 @@ public class LightingClient implements AutoCloseable {
         if (!started.compareAndSet(false, true)) {
             return;
         }
+        maybePrintBanner();
+        logStartupLine("initializing");
         bootstrap();
         startWatch();
+        logStartupLine("started");
     }
 
     private void bootstrap() {
@@ -123,5 +139,34 @@ public class LightingClient implements AutoCloseable {
         } finally {
             notifier.shutdownNow();
         }
+        log.info("lighting-config client stopped | appId={}", options.getAppId());
+    }
+
+    private void maybePrintBanner() {
+        if (options.isBannerEnabled()) {
+            log.info("\n{}", BANNER);
+        }
+    }
+
+    private void logStartupLine(String state) {
+        log.info(
+                "lighting-config client {} | version={} | tenant={} | namespace={} | appId={} | transport={}",
+                state,
+                resolveVersion(),
+                options.getTenant(),
+                options.getNamespace(),
+                options.getAppId(),
+                transport.getClass().getSimpleName());
+    }
+
+    private String resolveVersion() {
+        Package pkg = LightingClient.class.getPackage();
+        if (pkg != null) {
+            String version = pkg.getImplementationVersion();
+            if (version != null && !version.isBlank()) {
+                return version;
+            }
+        }
+        return "dev";
     }
 }

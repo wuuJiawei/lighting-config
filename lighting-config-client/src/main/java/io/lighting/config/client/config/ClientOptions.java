@@ -21,6 +21,7 @@ public final class ClientOptions {
     private final Map<String, String> metadata;
     private final List<String> bootstrapPrefixes;
     private final Duration watchReconnectBackoff;
+    private final boolean bannerEnabled;
 
     private ClientOptions(Builder builder) {
         this.serverAddress = Objects.requireNonNull(builder.serverAddress, "serverAddress");
@@ -32,6 +33,7 @@ public final class ClientOptions {
         this.metadata = Collections.unmodifiableMap(new LinkedHashMap<>(builder.metadata));
         this.bootstrapPrefixes = List.copyOf(builder.bootstrapPrefixes);
         this.watchReconnectBackoff = builder.watchReconnectBackoff;
+        this.bannerEnabled = builder.bannerEnabled;
     }
 
     public static Builder builder() {
@@ -74,6 +76,10 @@ public final class ClientOptions {
         return watchReconnectBackoff;
     }
 
+    public boolean isBannerEnabled() {
+        return bannerEnabled;
+    }
+
     public Builder toBuilder() {
         return new Builder()
                 .serverAddress(serverAddress)
@@ -84,7 +90,8 @@ public final class ClientOptions {
                 .labels(labels)
                 .metadata(metadata)
                 .bootstrapPrefixes(bootstrapPrefixes)
-                .watchReconnectBackoff(watchReconnectBackoff);
+                .watchReconnectBackoff(watchReconnectBackoff)
+                .bannerEnabled(bannerEnabled);
     }
 
     public static final class Builder {
@@ -97,6 +104,7 @@ public final class ClientOptions {
         private Map<String, String> metadata = new LinkedHashMap<>();
         private List<String> bootstrapPrefixes = List.of();
         private Duration watchReconnectBackoff = Duration.ofSeconds(5);
+        private boolean bannerEnabled = true;
 
         public Builder serverAddress(String serverAddress) {
             this.serverAddress = serverAddress;
@@ -150,6 +158,11 @@ public final class ClientOptions {
 
         public Builder watchReconnectBackoff(Duration duration) {
             this.watchReconnectBackoff = duration == null ? Duration.ofSeconds(5) : duration;
+            return this;
+        }
+
+        public Builder bannerEnabled(boolean bannerEnabled) {
+            this.bannerEnabled = bannerEnabled;
             return this;
         }
 

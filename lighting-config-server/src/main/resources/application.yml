@@ -1,6 +1,8 @@
 server:
   port: 7086
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   datasource:
     url: ${LIGHTING_DB_URL:jdbc:postgresql://localhost:5432/postgres}
     username: ${LIGHTING_DB_USER:lighting}

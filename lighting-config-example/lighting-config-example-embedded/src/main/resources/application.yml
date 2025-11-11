@@ -1,6 +1,15 @@
 server:
   port: 8083
 
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+  datasource:
+    url: ${LIGHTING_DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${LIGHTING_DB_USER:lighting}
+    password: ${LIGHTING_DB_PASSWORD:lighting}
+    driver-class-name: ${LIGHTING_DB_DRIVER:org.postgresql.Driver}
+
 lighting:
   config:
     mode: embedded

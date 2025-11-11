@@ -30,6 +30,7 @@ public class LightingClientAutoConfiguration {
                 .metadata(properties.getMetadata())
                 .bootstrapPrefixes(properties.getBootstrapPrefixes())
                 .watchReconnectBackoff(properties.getWatchReconnectBackoff())
+                .bannerEnabled(properties.isBannerEnabled())
                 .build();
     }
 

@@ -20,6 +20,7 @@ public class LightingClientProperties {
     private final Server server = new Server();
     private boolean autoStart = true;
     private boolean enabled = true;
+    private boolean bannerEnabled = true;
 
     public String getTenant() {
         return tenant;
@@ -95,6 +96,14 @@ public class LightingClientProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isBannerEnabled() {
+        return bannerEnabled;
+    }
+
+    public void setBannerEnabled(boolean bannerEnabled) {
+        this.bannerEnabled = bannerEnabled;
     }
 
     public static class Server {
