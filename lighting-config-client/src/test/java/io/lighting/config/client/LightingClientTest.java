@@ -1,23 +1,25 @@
 package io.lighting.config.client;
 
 import io.lighting.config.client.config.ClientOptions;
-import io.lighting.config.client.transport.ConfigTransport;
+import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.dto.ChangeType;
 import io.lighting.config.core.dto.ConfigChange;
+import io.lighting.config.core.dto.PollAdvice;
+import io.lighting.config.core.dto.PollRequest;
+import io.lighting.config.core.dto.PollResponse;
 import io.lighting.config.core.model.ConfigCoordinate;
-import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.model.ContentType;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,12 +31,13 @@ class LightingClientTest {
     @BeforeEach
     void setUp() {
         transport = new StubTransport();
-        transport.setBootstrap(List.of(sampleItem("alpha", "v1", 1)));
+        transport.enqueue(upsert("alpha", "v1", 1));
         ClientOptions options = ClientOptions.builder()
-                .serverAddress("in-memory")
+                .serverAddress("http://localhost:8080")
                 .tenant("tenant")
                 .namespace("ns")
                 .appId("app")
+                .pollInterval(Duration.ofMillis(50))
                 .build();
         client = new LightingClient(options, transport);
         client.start();
@@ -46,14 +49,12 @@ class LightingClientTest {
     }
 
     @Test
-    void bootstrapLoadsCache() {
-        Optional<String> value = client.get("alpha");
-        assertTrue(value.isPresent());
-        assertEquals("v1", value.get());
+    void bootstrapLoadsCache() throws InterruptedException {
+        assertTrue(waitForValue("alpha", "v1"));
     }
 
     @Test
-    void listenerGetsUpdatesFromWatch() throws InterruptedException {
+    void listenerGetsUpdatesFromPoll() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<ConfigChange> received = new AtomicReference<>();
         client.addListener("feature.", change -> {
@@ -61,62 +62,58 @@ class LightingClientTest {
             latch.countDown();
         });
 
-        ConfigChange change = ConfigChange.builder()
-                .coordinate(ConfigCoordinate.of("tenant", "ns", "app", "feature.toggle"))
-                .version(2)
-                .type(ChangeType.UPSERT)
-                .contentType(ContentType.TEXT)
-                .value("true")
-                .occurredAt(Instant.now())
-                .build();
-        transport.emit(change);
-
+        transport.enqueue(upsert("feature.toggle", "true", 2));
         assertTrue(latch.await(1, TimeUnit.SECONDS), "listener should be invoked");
         assertEquals("true", received.get().getValue());
-        assertEquals("true", client.get("feature.toggle").orElse(null));
+        assertTrue(waitForValue("feature.toggle", "true"));
     }
 
-    private static ConfigItem sampleItem(String key, String value, long version) {
-        return ConfigItem.builder()
-                .tenant("tenant")
-                .namespace("ns")
-                .appId("app")
-                .key(key)
-                .value(value)
-                .contentType(ContentType.TEXT)
+    private boolean waitForValue(String key, String expected) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 1_000;
+        while (System.currentTimeMillis() < deadline) {
+            Optional<String> value = client.get(key);
+            if (value.isPresent() && expected.equals(value.get())) {
+                return true;
+            }
+            Thread.sleep(20);
+        }
+        return false;
+    }
+
+    private static ConfigChange upsert(String key, String value, long version) {
+        return ConfigChange.builder()
+                .coordinate(ConfigCoordinate.of("tenant", "ns", "app", key))
                 .version(version)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
+                .type(ChangeType.UPSERT)
+                .contentType(ContentType.TEXT)
+                .value(value)
+                .occurredAt(Instant.now())
                 .build();
     }
 
-    private static final class StubTransport implements ConfigTransport {
-        private List<ConfigItem> bootstrap = List.of();
-        private Consumer<ConfigChange> consumer;
+    private static final class StubTransport implements PollingTransport {
 
-        void setBootstrap(List<ConfigItem> items) {
-            this.bootstrap = items;
+        private final List<PollResponse> responses = new ArrayList<>();
+        private int index = 0;
+
+        void enqueue(ConfigChange change) {
+            responses.add(PollResponse.builder()
+                    .version(change.getVersion())
+                    .items(List.of(change))
+                    .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
+                    .build());
         }
 
-        void emit(ConfigChange change) {
-            if (consumer != null) {
-                consumer.accept(change);
+        @Override
+        public PollResponse poll(PollRequest request) {
+            if (index < responses.size()) {
+                return responses.get(index++);
             }
-        }
-
-        @Override
-        public List<ConfigItem> pull(io.lighting.config.core.dto.PullQuery query) {
-            return bootstrap;
-        }
-
-        @Override
-        public WatchHandle watch(io.lighting.config.core.dto.WatchRequest request, java.util.function.Consumer<ConfigChange> consumer) {
-            this.consumer = consumer;
-            return () -> {};
-        }
-
-        @Override
-        public void close() {
+            return PollResponse.builder()
+                    .version(request.getLastVersion())
+                    .items(List.of())
+                    .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
+                    .build();
         }
     }
 }

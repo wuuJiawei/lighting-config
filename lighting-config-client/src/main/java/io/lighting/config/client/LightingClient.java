@@ -4,26 +4,27 @@ import io.lighting.config.client.cache.ConfigCache;
 import io.lighting.config.client.config.ClientOptions;
 import io.lighting.config.client.listener.ConfigListener;
 import io.lighting.config.client.listener.ListenerRegistry;
-import io.lighting.config.client.transport.ConfigTransport;
-import io.lighting.config.client.transport.ConfigTransport.WatchHandle;
-import io.lighting.config.core.dto.ClientMetadata;
+import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.dto.ConfigChange;
-import io.lighting.config.core.dto.ConfigSelector;
-import io.lighting.config.core.dto.PullQuery;
-import io.lighting.config.core.dto.WatchRequest;
-import io.lighting.config.core.model.ConfigItem;
-import io.lighting.config.core.model.LabelSet;
+import io.lighting.config.core.dto.PollAdvice;
+import io.lighting.config.core.dto.PollRequest;
+import io.lighting.config.core.dto.PollResponse;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Main entry point for interacting with the config server.
+ * Main entry point for interacting with the config server using periodic polling.
  */
 public class LightingClient implements AutoCloseable {
 
@@ -39,9 +40,9 @@ public class LightingClient implements AutoCloseable {
                     + "             |__/";
 
     private final ClientOptions options;
-    private final ConfigTransport transport;
-    private final ConfigCache cache;
-    private final ListenerRegistry listenerRegistry;
+    private final PollingTransport transport;
+    private final ConfigCache cache = new ConfigCache();
+    private final ListenerRegistry listenerRegistry = new ListenerRegistry();
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicLong lastVersion = new AtomicLong(0);
     private final ExecutorService notifier = Executors.newSingleThreadExecutor(r -> {
@@ -49,14 +50,17 @@ public class LightingClient implements AutoCloseable {
         t.setDaemon(true);
         return t;
     });
-    private WatchHandle watchHandle;
+    private final ScheduledExecutorService pollScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "lighting-poller");
+        t.setDaemon(true);
+        return t;
+    });
+    private ScheduledFuture<?> scheduledPoll;
 
     public LightingClient(ClientOptions options,
-                          ConfigTransport transport) {
+                          PollingTransport transport) {
         this.options = options;
         this.transport = transport;
-        this.cache = new ConfigCache();
-        this.listenerRegistry = new ListenerRegistry();
     }
 
     public void start() {
@@ -65,53 +69,51 @@ public class LightingClient implements AutoCloseable {
         }
         maybePrintBanner();
         logStartupLine("initializing");
-        bootstrap();
-        startWatch();
-        logStartupLine("started");
+        scheduleNextPoll(true, Duration.ZERO);
     }
 
-    private void bootstrap() {
-        List<String> prefixes = options.getBootstrapPrefixes();
-        if (prefixes.isEmpty()) {
-            loadPrefix(null);
-        } else {
-            prefixes.forEach(this::loadPrefix);
+    private void scheduleNextPoll(boolean bootstrap, Duration delay) {
+        scheduledPoll = pollScheduler.schedule(() -> pollOnce(bootstrap),
+                Math.max(0, delay.toMillis()),
+                TimeUnit.MILLISECONDS);
+    }
+
+    private void pollOnce(boolean bootstrap) {
+        try {
+            PollRequest request = PollRequest.builder()
+                    .tenant(options.getTenant())
+                    .namespace(options.getNamespace())
+                    .appId(options.getAppId())
+                    .labels(options.getLabels())
+                    .metadata(options.getMetadata())
+                    .lastVersion(bootstrap ? 0 : lastVersion.get())
+                    .prefixes(options.getBootstrapPrefixes())
+                    .clientTime(Instant.now())
+                    .build();
+            PollResponse response = transport.poll(request);
+            if (!response.getItems().isEmpty() && response.getVersion() > lastVersion.get()) {
+                response.getItems().forEach(this::applyChange);
+                lastVersion.updateAndGet(current -> Math.max(current, response.getVersion()));
+                logStartupLine(bootstrap ? "started" : "synced");
+            } else if (bootstrap) {
+                logStartupLine("started");
+            }
+            scheduleNextPoll(false, resolveNextInterval(response.getAdvice()));
+        } catch (Exception ex) {
+            log.warn("Polling request failed: {}", ex.getMessage());
+            scheduleNextPoll(false, options.getPollInterval());
         }
     }
 
-    private void loadPrefix(String prefix) {
-        PullQuery.Builder builder = PullQuery.builder()
-                .tenant(options.getTenant())
-                .namespace(options.getNamespace())
-                .appId(options.getAppId());
-        if (prefix != null) {
-            builder.selector(ConfigSelector.byPrefix(prefix));
+    private Duration resolveNextInterval(PollAdvice advice) {
+        if (advice == null || advice.getNextInterval() == null || advice.getNextInterval().isZero()) {
+            return options.getPollInterval();
         }
-        List<ConfigItem> items = transport.pull(builder.build());
-        for (ConfigItem item : items) {
-            cache.put(item);
-            lastVersion.updateAndGet(current -> Math.max(current, item.getVersion()));
-        }
+        return advice.getNextInterval();
     }
 
-    private void startWatch() {
-        WatchRequest request = WatchRequest.builder()
-                .tenant(options.getTenant())
-                .namespace(options.getNamespace())
-                .appId(options.getAppId())
-                .labels(LabelSet.of(options.getLabels()))
-                .client(ClientMetadata.builder()
-                        .clientId(options.getMetadata().getOrDefault("clientId", options.getAppId()))
-                        .attributes(options.getMetadata())
-                        .build())
-                .lastKnownVersion(lastVersion.get())
-                .build();
-        watchHandle = transport.watch(request, this::handleChange);
-    }
-
-    private void handleChange(ConfigChange change) {
+    private void applyChange(ConfigChange change) {
         cache.apply(change);
-        lastVersion.updateAndGet(current -> Math.max(current, change.getVersion()));
         notifier.submit(() -> listenerRegistry.notifyListeners(change));
     }
 
@@ -129,9 +131,10 @@ public class LightingClient implements AutoCloseable {
 
     @Override
     public void close() {
-        if (watchHandle != null) {
-            watchHandle.close();
+        if (scheduledPoll != null) {
+            scheduledPoll.cancel(true);
         }
+        pollScheduler.shutdownNow();
         try {
             transport.close();
         } catch (Exception e) {

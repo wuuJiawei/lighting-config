@@ -9,7 +9,7 @@
    - 新增轮询策略抽象（如 `PollRequest`, `PollResponse`, `PollAdvice`），支持“下次轮询间隔”字段。
    - 处理 config 变更事件模型的调整，从推模式改为“基于版本的对比”。
 
-2. **客户端 SDK（lighting-config-client）**
+2. **客户端 SDK（lighting-config-client）** ✅
    - 废弃 gRPC `ConfigTransport`，实现新的 HTTP 轮询传输层，负责周期性获取配置差异。
    - 在 `ClientOptions` 中引入 `pollInterval`（默认 30s，可配置，单位毫秒），支持 jitter/backoff。
    - 重写 `LightingClient.start()`：以调度线程执行轮询；合并变更后触发监听。
@@ -21,7 +21,7 @@
    - 自动装配新的轮询 transport，无需 gRPC 依赖。
    - 更新测试，验证 poll interval 配置与 Transport 注入逻辑。
 
-4. **服务器模块（lighting-config-server）**
+4. **服务器模块（lighting-config-server）** (进行中)
    - 移除所有 gRPC 组件与依赖。
    - 增加 `/api/poll`（命名待定）REST 端点：接收客户端版本信息，返回差异以及下一次轮询建议。
    - 结合 `ConfigApplicationService`/`NotifyEngine` 计算差异列表与版本；必要时新增内存缓存或长轮询机制。
@@ -45,6 +45,6 @@
    - 在示例客户端中演示不同轮询间隔与手动刷新。
    - 制定性能/压力测试策略，验证轮询负载。
 
-> 进度：当前已完成任务 1，新增 `PollRequest`/`PollResponse`/`PollAdvice` DTO（位于 `lighting-config-core/src/main/java/io/lighting/config/core/dto/`）。
+> 进度：已完成任务 1（核心 DTO）与任务 2（客户端切换到轮询：新增 `PollingTransport`、HTTP 传输、`LightingClient` 定时轮询架构、Spring Boot Starter 与示例更新）。其余任务按序推进。
 
 > 执行策略：按顺序逐步完成上述事项，每完成一个阶段更新该文档并回填实现细节。

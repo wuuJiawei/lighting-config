@@ -51,4 +51,4 @@ mvn spring-boot:run
 - `GET /feature/order`：查看 `feature.order.v2` 参数
 - `GET /events/last`：查看最近一次监听事件
 
-将服务器（无论是 `lighting-config-server` 还是示例 standalone）地址写入 `lighting.config.client.server.address` 即可完成联调，示例配置默认指向 `dns:///localhost:9091`。
+将服务器（无论是 `lighting-config-server` 还是示例 standalone）地址写入 `lighting.config.client.server.address` 即可完成联调，示例配置默认指向 `http://localhost:7086`。如需调快刷新频率，可将 `lighting.config.client.poll-interval` 调成更小的数值（默认 30s）。

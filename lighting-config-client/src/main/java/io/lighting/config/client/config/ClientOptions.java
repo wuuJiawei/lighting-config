@@ -20,7 +20,7 @@ public final class ClientOptions {
     private final Map<String, String> labels;
     private final Map<String, String> metadata;
     private final List<String> bootstrapPrefixes;
-    private final Duration watchReconnectBackoff;
+    private final Duration pollInterval;
     private final boolean bannerEnabled;
 
     private ClientOptions(Builder builder) {
@@ -32,7 +32,7 @@ public final class ClientOptions {
         this.labels = Collections.unmodifiableMap(new LinkedHashMap<>(builder.labels));
         this.metadata = Collections.unmodifiableMap(new LinkedHashMap<>(builder.metadata));
         this.bootstrapPrefixes = List.copyOf(builder.bootstrapPrefixes);
-        this.watchReconnectBackoff = builder.watchReconnectBackoff;
+        this.pollInterval = builder.pollInterval;
         this.bannerEnabled = builder.bannerEnabled;
     }
 
@@ -72,8 +72,8 @@ public final class ClientOptions {
         return bootstrapPrefixes;
     }
 
-    public Duration getWatchReconnectBackoff() {
-        return watchReconnectBackoff;
+    public Duration getPollInterval() {
+        return pollInterval;
     }
 
     public boolean isBannerEnabled() {
@@ -90,12 +90,12 @@ public final class ClientOptions {
                 .labels(labels)
                 .metadata(metadata)
                 .bootstrapPrefixes(bootstrapPrefixes)
-                .watchReconnectBackoff(watchReconnectBackoff)
+                .pollInterval(pollInterval)
                 .bannerEnabled(bannerEnabled);
     }
 
     public static final class Builder {
-        private String serverAddress = "dns:///localhost:9090";
+        private String serverAddress = "http://localhost:7086";
         private boolean useTls = false;
         private String tenant = "default";
         private String namespace = "default";
@@ -103,7 +103,7 @@ public final class ClientOptions {
         private Map<String, String> labels = new LinkedHashMap<>();
         private Map<String, String> metadata = new LinkedHashMap<>();
         private List<String> bootstrapPrefixes = List.of();
-        private Duration watchReconnectBackoff = Duration.ofSeconds(5);
+        private Duration pollInterval = Duration.ofSeconds(30);
         private boolean bannerEnabled = true;
 
         public Builder serverAddress(String serverAddress) {
@@ -156,8 +156,8 @@ public final class ClientOptions {
             return this;
         }
 
-        public Builder watchReconnectBackoff(Duration duration) {
-            this.watchReconnectBackoff = duration == null ? Duration.ofSeconds(5) : duration;
+        public Builder pollInterval(Duration duration) {
+            this.pollInterval = duration == null ? Duration.ofSeconds(30) : duration;
             return this;
         }
 
