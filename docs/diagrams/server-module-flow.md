@@ -12,7 +12,9 @@ sequenceDiagram
     Service->>Repo: upsert(ConfigItem)
     Repo-->>Service: ack
     Service->>Notify: publish(ConfigChangeEvent)
+    Service->>Repo: (optional) currentVersion
+    Service->>ChangeFeed: append(ConfigChange)
     Notify->>EventBus: forward
     EventBus-->>Notify: subscriber callbacks
-    Notify-->>Clients: push ConfigUpdate (gRPC)
+    ChangeFeed-->>PollAPI: serve incremental updates
 ```

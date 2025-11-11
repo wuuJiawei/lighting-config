@@ -3,6 +3,8 @@ package io.lighting.config.server.config;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.core.api.EventBus;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.server.notify.ChangeFeed;
+import io.lighting.config.server.notify.InMemoryChangeFeed;
 import io.lighting.config.server.notify.InMemoryNotifyEngine;
 import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.notify.SimpleEventBus;
@@ -31,6 +33,12 @@ public class ServerInfrastructureConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public ChangeFeed changeFeed() {
+        return new InMemoryChangeFeed();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "lighting.config.storage", name = "type", havingValue = "memory")
     public ConfigRepository configRepository() {
         return new InMemoryConfigRepository();
@@ -39,8 +47,9 @@ public class ServerInfrastructureConfiguration {
     @Bean
     public ConfigApplicationService configApplicationService(ConfigRepository repository,
                                                              NotifyEngine notifyEngine,
+                                                             ChangeFeed changeFeed,
                                                              TimeProvider timeProvider) {
-        return new DefaultConfigApplicationService(repository, notifyEngine, timeProvider);
+        return new DefaultConfigApplicationService(repository, notifyEngine, changeFeed, timeProvider);
     }
 
     @Bean

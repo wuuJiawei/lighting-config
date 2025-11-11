@@ -1,6 +1,5 @@
 package io.lighting.config.client.transport;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.client.config.ClientOptions;
@@ -13,26 +12,18 @@ import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ContentType;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.stream.Collectors;
 
 /**
- * Simple HTTP transport that fetches config snapshots via REST endpoints and
- * produces {@link PollResponse} objects. Until a dedicated polling endpoint is exposed
- * by the server, it leverages the existing /api/config list API.
+ * HTTP-based polling transport that talks to the `/api/poll` endpoint.
  */
 public class HttpPollingTransport implements PollingTransport {
-
-    private static final Logger log = LoggerFactory.getLogger(HttpPollingTransport.class);
-    private static final TypeReference<List<RestConfigItem>> LIST_TYPE = new TypeReference<>() {};
 
     private final ClientOptions options;
     private final HttpClient httpClient;
@@ -54,45 +45,25 @@ public class HttpPollingTransport implements PollingTransport {
     @Override
     public PollResponse poll(PollRequest request) {
         try {
-            URI uri = buildUri(request);
+            URI uri = baseUri.resolve("/api/poll");
+            String body = objectMapper.writeValueAsString(request);
             HttpRequest httpRequest = HttpRequest.newBuilder(uri)
                     .timeout(requestTimeout)
-                    .GET()
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
                 throw new IllegalStateException("Polling request failed with status " + response.statusCode());
             }
-            List<RestConfigItem> payload = objectMapper.readValue(response.body(), LIST_TYPE);
-            List<ConfigChange> changes = new ArrayList<>();
-            long maxVersion = request.getLastVersion();
-            for (RestConfigItem item : payload) {
-                changes.add(item.toChange());
-                maxVersion = Math.max(maxVersion, item.version);
-            }
-            return PollResponse.builder()
-                    .version(maxVersion)
-                    .items(changes)
-                    .advice(PollAdvice.builder().nextInterval(options.getPollInterval()).build())
-                    .build();
+            RestPollResponse payload = objectMapper.readValue(response.body(), RestPollResponse.class);
+            return payload.toDomain(options.getPollInterval());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Polling interrupted", e);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to execute polling request", e);
         }
-    }
-
-    private URI buildUri(PollRequest request) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(baseUri).append("/api/config")
-                .append("?tenant=").append(encode(request.getTenant()))
-                .append("&namespace=").append(encode(request.getNamespace()))
-                .append("&appId=").append(encode(request.getAppId()));
-        if (!request.getPrefixes().isEmpty()) {
-            builder.append("&prefix=").append(encode(request.getPrefixes().get(0)));
-        }
-        return URI.create(builder.toString());
     }
 
     private static URI normalizeBase(String address) {
@@ -102,30 +73,64 @@ public class HttpPollingTransport implements PollingTransport {
         return URI.create(address);
     }
 
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    private static final class RestPollResponse {
+        public long version;
+        public List<RestConfigChange> items = List.of();
+        public RestAdvice advice;
+        public Instant serverTime;
+
+        PollResponse toDomain(Duration fallbackInterval) {
+            Duration next = advice != null && advice.nextInterval != null ? advice.nextInterval : fallbackInterval;
+            return PollResponse.builder()
+                    .version(version)
+                    .items(items.stream().map(RestConfigChange::toChange).collect(Collectors.toList()))
+                    .advice(PollAdvice.builder().nextInterval(next).throttled(advice != null && advice.throttled).build())
+                    .serverTime(serverTime)
+                    .build();
+        }
     }
 
-    private static final class RestConfigItem {
+    private static final class RestAdvice {
+        public Duration nextInterval;
+        public boolean throttled;
+    }
+
+    private static final class RestConfigChange {
+        public RestCoordinate coordinate;
+        public long version;
+        public String contentType;
+        public String value;
+        public boolean deleted;
+        public String occurredAt;
+
+        ConfigChange toChange() {
+            return ConfigChange.builder()
+                    .coordinate(coordinate.toCoordinate())
+                    .version(version)
+                    .type(deleted ? ChangeType.DELETE : ChangeType.UPSERT)
+                    .contentType(ContentType.fromAlias(contentType))
+                    .value(value)
+                    .deleted(deleted)
+                    .occurredAt(parseInstant(occurredAt))
+                    .build();
+        }
+
+        private Instant parseInstant(String value) {
+            if (value == null || value.isEmpty()) {
+                return Instant.now();
+            }
+            return Instant.parse(value);
+        }
+    }
+
+    private static final class RestCoordinate {
         public String tenant;
         public String namespace;
         public String appId;
         public String key;
-        public String value;
-        public String contentType;
-        public long version;
-        public boolean enabled;
 
-        ConfigChange toChange() {
-            return ConfigChange.builder()
-                    .coordinate(ConfigCoordinate.of(tenant, namespace, appId, key))
-                    .version(version)
-                    .type(ChangeType.UPSERT)
-                    .contentType(ContentType.fromAlias(contentType))
-                    .value(value)
-                    .deleted(false)
-                    .occurredAt(java.time.Instant.now())
-                    .build();
+        ConfigCoordinate toCoordinate() {
+            return ConfigCoordinate.of(tenant, namespace, appId, key);
         }
     }
 }

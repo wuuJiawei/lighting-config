@@ -8,6 +8,7 @@ import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.server.notify.ChangeFeed;
 import io.lighting.config.server.notify.NotifyEngine;
 
 import java.time.Instant;
@@ -18,13 +19,16 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
 
     private final ConfigRepository repository;
     private final NotifyEngine notifyEngine;
+    private final ChangeFeed changeFeed;
     private final TimeProvider timeProvider;
 
     public DefaultConfigApplicationService(ConfigRepository repository,
                                            NotifyEngine notifyEngine,
+                                           ChangeFeed changeFeed,
                                            TimeProvider timeProvider) {
         this.repository = repository;
         this.notifyEngine = notifyEngine;
+        this.changeFeed = changeFeed;
         this.timeProvider = timeProvider;
     }
 
@@ -69,11 +73,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .deleted(true)
                 .occurredAt(now())
                 .build();
-        notifyEngine.publish(ConfigChangeEvent.builder()
-                .change(change)
-                .operator(operator)
-                .publishedAt(now())
-                .build());
+        publish(change, operator);
     }
 
     private void publishChange(ConfigItem item, ChangeType type, String operator) {
@@ -85,6 +85,11 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .value(item.getValue())
                 .occurredAt(now())
                 .build();
+        publish(change, operator);
+    }
+
+    private void publish(ConfigChange change, String operator) {
+        changeFeed.append(change);
         notifyEngine.publish(ConfigChangeEvent.builder()
                 .change(change)
                 .operator(operator)
@@ -98,11 +103,5 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
 
     private Instant now() {
         return timeProvider.now();
-    }
-
-    private io.lighting.config.core.model.ContentType itemContentType(String tenant, String namespace, String appId, String key) {
-        return repository.get(tenant, namespace, appId, key)
-                .map(ConfigItem::getContentType)
-                .orElse(io.lighting.config.core.model.ContentType.TEXT);
     }
 }

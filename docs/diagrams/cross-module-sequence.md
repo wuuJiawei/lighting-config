@@ -7,14 +7,16 @@ sequenceDiagram
     participant Repo as ConfigRepository (DB/File)
     participant Embedded as lighting-config-embedded
 
-    Client->>Server: gRPC Pull (bootstrap)
+    Client->>Server: POST /api/poll (lastVersion=0)
     Server->>Repo: Query list()
     Repo-->>Server: ConfigItem[]
-    Server-->>Client: PullResponse
-    Client->>Server: WatchRequest (namespace/app)
-    Server-->>Client: stream ConfigUpdate
+    Server-->>Client: PollResponse (snapshot)
+    Client->>Server: POST /api/poll (lastVersion=n)
+    Server->>ChangeFeed: fetchSince(n)
+    ChangeFeed-->>Server: ConfigChange[]
+    Server-->>Client: PollResponse (delta + nextInterval)
     Embedded->>Repo: upsert/delete
     Repo-->>Server: ChangeEvent (via NotifyEngine)
-    Server-->>Client: ConfigUpdate (push)
+    Server-->>ChangeFeed: append(ConfigChange)
     Client->>Application: Listener callback/refresh
 ```

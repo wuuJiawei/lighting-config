@@ -2,7 +2,7 @@
 
 ## 1. 目标
 - 为 `lighting-config-server` 提供基础 Web 控制台：配置 CRUD、监听状态、命名空间/租户管理、推送日志可视化。
-- 与后端 REST API (`/api/config`, `/api/gray`, `/actuator`) 对齐，后续可扩展到 gRPC WebProxy。
+- 与后端 REST API (`/api/config`, `/api/gray`, `/api/poll`, `/actuator`) 对齐，后续可扩展到 WebSocket/SSE。
 - 设计可渐进增强的项目骨架，方便后续 Agent/Contributor 直接补充页面。
 
 ## 2. 技术栈
@@ -44,7 +44,7 @@ lighting-config-console/
 ## 4. 数据流 & 通信
 - 通过 REST API 与 server 交互，默认 baseURL=`/api`（同域部署，依赖反向代理解决跨域）。
 - TanStack Query 负责请求缓存、刷新、错误边界；Mutation 成功后自动刷新对应列表。
-- SSE/gRPC 推送暂不直接接入，后续可通过 WebSocket Gateway 拓展。
+- 轮询结果与动态变更目前通过 HTTP `/api/poll` 完成，未来如需更实时可扩展 WebSocket Gateway。
 
 ## 5. 开发/构建脚本（计划）
 | 命令 | 说明 |

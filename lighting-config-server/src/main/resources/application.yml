@@ -11,9 +11,6 @@ spring:
 lighting:
   config:
     mode: standalone
-    grpc:
-      enabled: true
-      port: 9090
     storage:
       type: ${LIGHTING_STORAGE_TYPE:jdbc}
       settings:

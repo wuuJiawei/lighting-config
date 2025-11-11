@@ -22,7 +22,7 @@ mvn spring-boot:run
 - `DELETE /embedded/config?...` 删除配置
 - 数据会持久化到项目根目录的 `example-config.json`
 
-该 Demo 直接依赖 `EmbeddedConfigManager`，默认配置 `lighting.config.mode=embedded` 且跳过 gRPC。
+该 Demo 直接依赖 `EmbeddedConfigManager`，默认配置 `lighting.config.mode=embedded` 并使用本地轮询传输（不再建立远程连接）。
 
 ## Standalone Server（轻量示例服务端）
 

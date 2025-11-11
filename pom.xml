@@ -65,7 +65,6 @@
 
     <modules>
         <module>lighting-config-core</module>
-        <module>lighting-config-link</module>
         <module>lighting-config-client</module>
         <module>lighting-config-spring-boot</module>
         <module>lighting-config-server</module>

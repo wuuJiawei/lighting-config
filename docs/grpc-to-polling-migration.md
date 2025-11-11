@@ -16,14 +16,14 @@
    - 更新缓存与版本管理逻辑，使其基于“最后一次版本号/etag”。
    - 调整日志与 banner，反映轮询通信；确保 close() 终止调度器。
 
-3. **Spring Boot Starter（lighting-config-spring-boot）**
+3. **Spring Boot Starter（lighting-config-spring-boot）** ✅
    - 绑定 `lighting.config.client.poll-interval` 配置项，默认 30s。
    - 自动装配新的轮询 transport，无需 gRPC 依赖。
    - 更新测试，验证 poll interval 配置与 Transport 注入逻辑。
 
 4. **服务器模块（lighting-config-server）** (进行中)
-   - 移除所有 gRPC 组件与依赖。
-   - 增加 `/api/poll`（命名待定）REST 端点：接收客户端版本信息，返回差异以及下一次轮询建议。
+   - ✅ 增加 `/api/poll` REST 端点，返回 `PollResponse`（当前基于快照 + 版本过滤）。
+   - 🚧 移除所有 gRPC 组件与依赖（已删除服务端实现与配置项，根 POM 中的 gRPC 版本/插件待清理）。
    - 结合 `ConfigApplicationService`/`NotifyEngine` 计算差异列表与版本；必要时新增内存缓存或长轮询机制。
    - 提供可选的限流/安全策略（轻量 token），以支撑高频轮询。
 
@@ -36,9 +36,8 @@
    - 在 `docs/系统设计文档.md`、`docs/example.md` 等文件中描述新的轮询通信流程与时序图。
    - 为 README/Runbook/ADR 添加迁移说明。
 
-7. **依赖与清理**
-   - 从所有 POM 中移除 gRPC 相关依赖、插件、proto 目录。
-   - 若 `lighting-config-link` 仅剩 DTO，可考虑重命名或整合到 `core`。
+7. **依赖与清理** ✅
+   - 已从所有 POM 中移除 gRPC 相关依赖、`lighting-config-link` 模块及 proto 目录。
 
 8. **测试与验证**
    - 编写针对轮询请求/响应的单元与集成测试。

@@ -11,7 +11,6 @@ public class LightingServerProperties {
 
     private Mode mode = Mode.STANDALONE;
     private final Server server = new Server();
-    private final Grpc grpc = new Grpc();
     private final Storage storage = new Storage();
     private final Redis redis = new Redis();
     private final Auth auth = new Auth();
@@ -26,10 +25,6 @@ public class LightingServerProperties {
 
     public Server getServer() {
         return server;
-    }
-
-    public Grpc getGrpc() {
-        return grpc;
     }
 
     public Storage getStorage() {
@@ -67,45 +62,6 @@ public class LightingServerProperties {
 
         public void setGracefulShutdown(Duration gracefulShutdown) {
             this.gracefulShutdown = gracefulShutdown;
-        }
-    }
-
-    public static class Grpc {
-        private boolean enabled = true;
-        private int port = 9090;
-        private boolean tls = false;
-        private Duration keepaliveTime = Duration.ofSeconds(30);
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public int getPort() {
-            return port;
-        }
-
-        public void setPort(int port) {
-            this.port = port;
-        }
-
-        public boolean isTls() {
-            return tls;
-        }
-
-        public void setTls(boolean tls) {
-            this.tls = tls;
-        }
-
-        public Duration getKeepaliveTime() {
-            return keepaliveTime;
-        }
-
-        public void setKeepaliveTime(Duration keepaliveTime) {
-            this.keepaliveTime = keepaliveTime;
         }
     }
 

@@ -7,5 +7,6 @@ lighting:
       tenant: default
       namespace: default
       app-id: demo-client
+      poll-interval: 5s
       server:
         address: http://localhost:7086

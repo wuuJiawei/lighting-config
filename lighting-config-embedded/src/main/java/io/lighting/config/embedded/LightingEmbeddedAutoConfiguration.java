@@ -3,7 +3,6 @@ package io.lighting.config.embedded;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.api.ConfigRepository;
-import io.lighting.config.server.config.GrpcServerConfiguration;
 import io.lighting.config.server.config.LightingServerProperties;
 import io.lighting.config.server.config.ServerInfrastructureConfiguration;
 import io.lighting.config.server.notify.NotifyEngine;
@@ -26,7 +25,6 @@ import org.springframework.context.annotation.Primary;
 @ConditionalOnProperty(prefix = "lighting.config", name = "mode", havingValue = "embedded")
 @EnableConfigurationProperties({LightingEmbeddedProperties.class, LightingServerProperties.class})
 @Import({ServerInfrastructureConfiguration.class,
-        GrpcServerConfiguration.class,
         LightingClientAutoConfiguration.class,
         LightingClientListenerConfiguration.class})
 @ComponentScan(basePackages = "io.lighting.config.server.rest")

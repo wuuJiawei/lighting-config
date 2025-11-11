@@ -2,16 +2,13 @@
 
 ```mermaid
 flowchart TD
-    A[Start LightingClient] --> B{Has bootstrap prefixes?}
-    B -- Yes --> C[Pull each prefix via gRPC]
-    B -- No --> D[Pull full namespace]
-    C --> E[Populate Caffeine cache]
-    D --> E
-    E --> F[Open Watch stream]
-    F --> G{Receive update}
-    G -->|Apply| H[Update cache + version]
-    H --> I[Notify ListenerRegistry]
-    I --> J[Application callbacks]
-    G -->|Disconnect| K[Reconnect with backoff]
-    K --> F
+    A[Start LightingClient] --> B[POST /api/poll (lastVersion=0)]
+    B --> C[Populate Caffeine cache]
+    C --> D[Schedule next poll (poll-interval)]
+    D --> E[POST /api/poll (lastVersion=n)]
+    E --> F{Response contains changes?}
+    F -- Yes --> G[Update cache + version]
+    G --> H[Notify ListenerRegistry]
+    H --> D
+    F -- No --> D
 ```
