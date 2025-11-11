@@ -13,8 +13,6 @@ spring:
 lighting:
   config:
     mode: embedded
-    client:
-      enabled: false
     embedded:
       storage:
         type: FILE

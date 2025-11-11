@@ -37,7 +37,7 @@ mvn spring-boot:run
 - `POST /example/config` 写入：`{"key":"feature.order.v2","value":"true"}`
 - `DELETE /example/config?...&key=feature.order.v2` 删除配置
 
-模块内部显式设置 `lighting.config.client.enabled=false`，避免启动任何 gRPC 客户端。
+> `lighting.config.client.enabled` 控制整个客户端 SDK，如需关闭所有 `@LightingValue`/监听能力才设为 false。嵌入式/示例场景保持默认（true），客户端会自动切换为本地 `EmbeddedConfigTransport`，依旧会打印 banner 并参与刷新。
 
 ## Spring Boot 客户端
 
