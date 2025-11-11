@@ -1,9 +1,12 @@
 package io.lighting.config.spring.boot;
 
 import io.lighting.config.client.LightingClient;
-import io.lighting.config.client.transport.ConfigTransport;
+import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.dto.ChangeType;
 import io.lighting.config.core.dto.ConfigChange;
+import io.lighting.config.core.dto.PollAdvice;
+import io.lighting.config.core.dto.PollRequest;
+import io.lighting.config.core.dto.PollResponse;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.model.ContentType;
@@ -17,16 +20,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = LightingClientAutoConfigurationTest.TestConfiguration.class, properties = {
-        "lighting.config.client.server.address=dns:///localhost:9090"
+        "lighting.config.client.server.address=http://localhost:8080",
+        "lighting.config.client.poll-interval=50ms"
 })
 class LightingClientAutoConfigurationTest {
 
@@ -34,7 +40,7 @@ class LightingClientAutoConfigurationTest {
     private LightingClient client;
 
     @Autowired
-    private StubConfigTransport transport;
+    private StubPollingTransport transport;
 
     @Autowired
     private TestBean testBean;
@@ -43,9 +49,9 @@ class LightingClientAutoConfigurationTest {
     private FeatureProperties featureProperties;
 
     @Test
-    void lightingValueInjectedFromClient() {
-        assertTrue(testBean.featureFlag);
-        assertTrue(featureProperties.flagEnabled);
+    void lightingValueInjectedFromClient() throws InterruptedException {
+        assertTrue(waitFor(() -> testBean.featureFlag));
+        assertTrue(waitFor(() -> featureProperties.flagEnabled));
     }
 
     @Test
@@ -83,9 +89,9 @@ class LightingClientAutoConfigurationTest {
     static class TestConfiguration {
         @Bean
         @Primary
-        StubConfigTransport stubConfigTransport() {
-            StubConfigTransport transport = new StubConfigTransport();
-            transport.setBootstrap(List.of(
+        StubPollingTransport stubConfigTransport() {
+            StubPollingTransport transport = new StubPollingTransport();
+            transport.enqueue(List.of(
                     sampleItem("feature.flag", "true", 1),
                     sampleItem("feature.flagEnabled", "true", 1),
                     sampleItem("feature.mode", "off", 1)
@@ -129,33 +135,59 @@ class LightingClientAutoConfigurationTest {
         private String mode;
     }
 
-    static class StubConfigTransport implements ConfigTransport {
-        private List<ConfigItem> bootstrap = List.of();
-        private Consumer<ConfigChange> consumer;
+    private boolean waitFor(BooleanSupplier supplier) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 1_000;
+        while (System.currentTimeMillis() < deadline) {
+            if (supplier.getAsBoolean()) {
+                return true;
+            }
+            Thread.sleep(20);
+        }
+        return false;
+    }
 
-        void setBootstrap(List<ConfigItem> items) {
-            this.bootstrap = items;
+    static class StubPollingTransport implements PollingTransport {
+        private final List<PollResponse> responses = new ArrayList<>();
+        private int index = 0;
+
+        void enqueue(List<ConfigItem> items) {
+            responses.add(PollResponse.builder()
+                    .version(items.stream().mapToLong(ConfigItem::getVersion).max().orElse(0))
+                    .items(items.stream().map(StubPollingTransport::toChange).collect(java.util.stream.Collectors.toList()))
+                    .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
+                    .build());
         }
 
         void emit(ConfigChange change) {
-            if (consumer != null) {
-                consumer.accept(change);
+            responses.add(PollResponse.builder()
+                    .version(change.getVersion())
+                    .items(List.of(change))
+                    .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
+                    .build());
+        }
+
+        @Override
+        public PollResponse poll(PollRequest request) {
+            if (index < responses.size()) {
+                return responses.get(index++);
             }
+            return PollResponse.builder()
+                    .version(request.getLastVersion())
+                    .items(List.of())
+                    .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
+                    .build();
         }
 
-        @Override
-        public List<ConfigItem> pull(io.lighting.config.core.dto.PullQuery query) {
-            return bootstrap;
-        }
-
-        @Override
-        public WatchHandle watch(io.lighting.config.core.dto.WatchRequest request, java.util.function.Consumer<ConfigChange> consumer) {
-            this.consumer = consumer;
-            return () -> {};
-        }
-
-        @Override
-        public void close() {
+        private static ConfigChange toChange(ConfigItem item) {
+            return ConfigChange.builder()
+                    .coordinate(ConfigCoordinate.of(item.getTenant(), item.getNamespace(), item.getAppId(), item.getKey()))
+                    .version(item.getVersion())
+                    .type(item.isEnabled() ? ChangeType.UPSERT : ChangeType.DELETE)
+                    .contentType(item.getContentType())
+                    .value(item.getValue())
+                    .deleted(!item.isEnabled())
+                    .occurredAt(item.getUpdatedAt())
+                    .build();
         }
     }
 }

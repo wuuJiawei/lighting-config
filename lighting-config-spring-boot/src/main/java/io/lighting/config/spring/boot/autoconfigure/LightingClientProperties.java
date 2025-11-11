@@ -16,11 +16,11 @@ public class LightingClientProperties {
     private Map<String, String> labels = new LinkedHashMap<>();
     private Map<String, String> metadata = new LinkedHashMap<>();
     private List<String> bootstrapPrefixes = List.of();
-    private Duration watchReconnectBackoff = Duration.ofSeconds(5);
     private final Server server = new Server();
     private boolean autoStart = true;
     private boolean enabled = true;
     private boolean bannerEnabled = true;
+    private Duration pollInterval = Duration.ofSeconds(30);
 
     public String getTenant() {
         return tenant;
@@ -70,14 +70,6 @@ public class LightingClientProperties {
         this.bootstrapPrefixes = bootstrapPrefixes;
     }
 
-    public Duration getWatchReconnectBackoff() {
-        return watchReconnectBackoff;
-    }
-
-    public void setWatchReconnectBackoff(Duration watchReconnectBackoff) {
-        this.watchReconnectBackoff = watchReconnectBackoff;
-    }
-
     public Server getServer() {
         return server;
     }
@@ -106,8 +98,16 @@ public class LightingClientProperties {
         this.bannerEnabled = bannerEnabled;
     }
 
+    public Duration getPollInterval() {
+        return pollInterval;
+    }
+
+    public void setPollInterval(Duration pollInterval) {
+        this.pollInterval = pollInterval;
+    }
+
     public static class Server {
-        private String address = "dns:///localhost:9090";
+        private String address = "http://localhost:7086";
         private boolean tls = false;
 
         public String getAddress() {

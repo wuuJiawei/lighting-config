@@ -1,7 +1,7 @@
 package io.lighting.config.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.lighting.config.client.transport.ConfigTransport;
+import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.server.config.GrpcServerConfiguration;
 import io.lighting.config.server.config.LightingServerProperties;
@@ -53,9 +53,9 @@ public class LightingEmbeddedAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(ConfigTransport.class)
-    public ConfigTransport embeddedConfigTransport(ConfigApplicationService applicationService,
-                                                   NotifyEngine notifyEngine) {
+    @ConditionalOnMissingBean(PollingTransport.class)
+    public PollingTransport embeddedConfigTransport(ConfigApplicationService applicationService,
+                                                    NotifyEngine notifyEngine) {
         return new EmbeddedConfigTransport(applicationService, notifyEngine);
     }
 }

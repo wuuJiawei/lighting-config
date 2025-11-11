@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "lighting.config.grpc.enabled=false",
         "server.port=0",
         "lighting.config.client.auto-start=false",
-        "lighting.config.client.server.address=dns:///localhost:9090"
+        "lighting.config.client.server.address=http://localhost:7086"
 })
 class LightingEmbeddedAutoConfigurationTest {
 

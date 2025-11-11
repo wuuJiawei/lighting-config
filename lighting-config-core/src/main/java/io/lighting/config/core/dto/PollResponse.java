@@ -1,6 +1,5 @@
 package io.lighting.config.core.dto;
 
-import io.lighting.config.core.model.ConfigItem;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.Objects;
 public final class PollResponse {
 
     private final long version;
-    private final List<ConfigItem> items;
+    private final List<ConfigChange> items;
     private final PollAdvice advice;
     private final Instant serverTime;
 
@@ -31,7 +30,7 @@ public final class PollResponse {
         return version;
     }
 
-    public List<ConfigItem> getItems() {
+    public List<ConfigChange> getItems() {
         return items;
     }
 
@@ -49,7 +48,7 @@ public final class PollResponse {
 
     public static final class Builder {
         private long version;
-        private List<ConfigItem> items = List.of();
+        private List<ConfigChange> items = List.of();
         private PollAdvice advice;
         private Instant serverTime;
 
@@ -58,7 +57,7 @@ public final class PollResponse {
             return this;
         }
 
-        public Builder items(List<ConfigItem> items) {
+        public Builder items(List<ConfigChange> items) {
             this.items = items == null ? List.of() : List.copyOf(items);
             return this;
         }

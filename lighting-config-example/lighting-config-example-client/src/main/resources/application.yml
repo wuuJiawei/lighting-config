@@ -8,4 +8,4 @@ lighting:
       namespace: default
       app-id: demo-client
       server:
-        address: dns:///localhost:9091
+        address: http://localhost:7086
