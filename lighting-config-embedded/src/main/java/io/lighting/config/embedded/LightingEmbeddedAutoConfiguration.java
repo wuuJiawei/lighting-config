@@ -1,10 +1,13 @@
 package io.lighting.config.embedded;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.lighting.config.client.transport.ConfigTransport;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.server.config.GrpcServerConfiguration;
 import io.lighting.config.server.config.LightingServerProperties;
 import io.lighting.config.server.config.ServerInfrastructureConfiguration;
+import io.lighting.config.server.notify.NotifyEngine;
+import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.spring.boot.autoconfigure.LightingClientAutoConfiguration;
 import io.lighting.config.spring.boot.autoconfigure.LightingClientListenerConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,7 +23,7 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 @ConditionalOnClass(io.lighting.config.server.rest.ConfigController.class)
-@ConditionalOnProperty(prefix = "lighting", name = "mode", havingValue = "embedded")
+@ConditionalOnProperty(prefix = "lighting.config", name = "mode", havingValue = "embedded")
 @EnableConfigurationProperties({LightingEmbeddedProperties.class, LightingServerProperties.class})
 @Import({ServerInfrastructureConfiguration.class,
         GrpcServerConfiguration.class,
@@ -47,5 +50,12 @@ public class LightingEmbeddedAutoConfiguration {
             return properties.getStorage().getPath();
         }
         return java.nio.file.Paths.get(System.getProperty("user.home"), ".lighting-config.json");
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ConfigTransport.class)
+    public ConfigTransport embeddedConfigTransport(ConfigApplicationService applicationService,
+                                                   NotifyEngine notifyEngine) {
+        return new EmbeddedConfigTransport(applicationService, notifyEngine);
     }
 }

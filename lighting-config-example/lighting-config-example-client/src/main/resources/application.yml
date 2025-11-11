@@ -1,0 +1,11 @@
+server:
+  port: 8082
+
+lighting:
+  config:
+    client:
+      tenant: default
+      namespace: default
+      app-id: demo-client
+      server:
+        address: dns:///localhost:9091

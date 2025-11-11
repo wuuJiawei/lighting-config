@@ -4,6 +4,7 @@
 
 ## 共享资源
 - `docs/系统设计文档.md`：功能/非功能要求、模块划分、接口、数据模型与部署脚本，用于一切决策背书。
+- `docs/frontend-architecture.md`：Web 控制台（lighting-config-console）的技术方案与目录规划。
 - `pom.xml`：多模块骨架，增删模块需同步更新并说明原因。
 - `docs/`：补充设计、ADR、Runbook 必须放在此处，命名约定 `子系统-主题.md`。
 
@@ -64,3 +65,8 @@
 - 新增/修改的配置项在 docs/ 或 README 中可查。
 
 所有 agent 在启动任务前需再次核对 `docs/系统设计文档.md` 最新版本，确保实现与架构基线一致。任何偏离需提出新的 ADR 并由 Architect Agent 批准。
+
+## Console / Frontend 计划
+- 控制台目录：`lighting-config-console/`（目前仅 README，占位待初始化）。
+- 方案文档：`docs/frontend-architecture.md` 描述了 Vite + React + TypeScript + Ant Design 的技术栈、目录结构、构建脚本与部署模式。
+- Server/Client Agent 在改动 REST API 时需同步更新该文档，方便后续前端任务启动。

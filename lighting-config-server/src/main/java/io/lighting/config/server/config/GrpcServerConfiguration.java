@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
-@ConditionalOnProperty(prefix = "lighting.grpc", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "lighting.config.grpc", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class GrpcServerConfiguration {
 
     @Bean

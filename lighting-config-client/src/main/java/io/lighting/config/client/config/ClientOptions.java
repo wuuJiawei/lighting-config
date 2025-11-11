@@ -88,7 +88,7 @@ public final class ClientOptions {
     }
 
     public static final class Builder {
-        private String serverAddress = "dns://localhost:9090";
+        private String serverAddress = "dns:///localhost:9090";
         private boolean useTls = false;
         private String tenant = "default";
         private String namespace = "default";

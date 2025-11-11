@@ -15,7 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import javax.sql.DataSource;
 
 @Configuration
-@ConditionalOnProperty(prefix = "lighting.storage", name = "type", havingValue = "jdbc", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "lighting.config.storage", name = "type", havingValue = "jdbc", matchIfMissing = true)
 public class DatabaseConfiguration {
 
     @Bean
@@ -23,7 +23,7 @@ public class DatabaseConfiguration {
     public DataSource lightingDataSource(DataSourceProperties properties) {
         String url = properties.determineUrl();
         if (url == null || url.isEmpty()) {
-            throw new IllegalStateException("spring.datasource.url must be set when lighting.storage.type=jdbc");
+            throw new IllegalStateException("spring.datasource.url must be set when lighting.config.storage.type=jdbc");
         }
         return properties.initializeDataSourceBuilder().build();
     }

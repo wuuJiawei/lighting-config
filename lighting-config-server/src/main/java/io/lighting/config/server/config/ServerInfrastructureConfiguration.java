@@ -31,7 +31,7 @@ public class ServerInfrastructureConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "lighting.storage", name = "type", havingValue = "memory")
+    @ConditionalOnProperty(prefix = "lighting.config.storage", name = "type", havingValue = "memory")
     public ConfigRepository configRepository() {
         return new InMemoryConfigRepository();
     }

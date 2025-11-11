@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = LightingClientAutoConfigurationTest.TestConfiguration.class, properties = {
-        "lighting.client.server.address=dns:///localhost:9090"
+        "lighting.config.client.server.address=dns:///localhost:9090"
 })
 class LightingClientAutoConfigurationTest {
 

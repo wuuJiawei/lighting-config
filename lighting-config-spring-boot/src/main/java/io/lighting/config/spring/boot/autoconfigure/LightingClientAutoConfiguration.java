@@ -6,6 +6,7 @@ import io.lighting.config.client.transport.ConfigTransport;
 import io.lighting.config.client.transport.GrpcConfigTransport;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(LightingClient.class)
 @EnableConfigurationProperties(LightingClientProperties.class)
+@ConditionalOnProperty(prefix = "lighting.config.client", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class LightingClientAutoConfiguration {
 
     @Bean
@@ -36,7 +38,7 @@ public class LightingClientAutoConfiguration {
     public ConfigTransport lightingConfigTransport(LightingClientProperties properties,
                                                    ClientOptions options) {
         if (!isGrpcAddress(options.getServerAddress())) {
-            throw new IllegalStateException("lighting.client.server.address must start with dns:// or direct:// when using gRPC transport");
+            throw new IllegalStateException("lighting.config.client.server.address must start with dns:// or direct:// when using gRPC transport");
         }
         return new GrpcConfigTransport(options);
     }

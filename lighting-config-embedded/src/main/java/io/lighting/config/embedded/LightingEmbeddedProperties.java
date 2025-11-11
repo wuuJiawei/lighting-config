@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.nio.file.Path;
 
-@ConfigurationProperties(prefix = "lighting.embedded")
+@ConfigurationProperties(prefix = "lighting.config.embedded")
 public class LightingEmbeddedProperties {
 
     private final Storage storage = new Storage();

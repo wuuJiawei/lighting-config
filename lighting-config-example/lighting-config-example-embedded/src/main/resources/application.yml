@@ -1,0 +1,12 @@
+server:
+  port: 8083
+
+lighting:
+  config:
+    mode: embedded
+    client:
+      enabled: false
+    embedded:
+      storage:
+        type: FILE
+        path: ./example-config.json

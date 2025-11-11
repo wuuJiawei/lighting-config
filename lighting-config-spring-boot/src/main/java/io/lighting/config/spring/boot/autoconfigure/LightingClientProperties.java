@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@ConfigurationProperties(prefix = "lighting.client")
+@ConfigurationProperties(prefix = "lighting.config.client")
 public class LightingClientProperties {
 
     private String tenant = "default";
@@ -19,6 +19,7 @@ public class LightingClientProperties {
     private Duration watchReconnectBackoff = Duration.ofSeconds(5);
     private final Server server = new Server();
     private boolean autoStart = true;
+    private boolean enabled = true;
 
     public String getTenant() {
         return tenant;
@@ -88,8 +89,16 @@ public class LightingClientProperties {
         this.autoStart = autoStart;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public static class Server {
-        private String address = "dns://localhost:9090";
+        private String address = "dns:///localhost:9090";
         private boolean tls = false;
 
         public String getAddress() {

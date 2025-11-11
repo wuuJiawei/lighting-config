@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = LightingEmbeddedAutoConfigurationTest.TestApplication.class, properties = {
-        "lighting.mode=embedded",
-        "lighting.grpc.enabled=false",
+        "lighting.config.mode=embedded",
+        "lighting.config.grpc.enabled=false",
         "server.port=0",
-        "lighting.client.auto-start=false",
-        "lighting.client.server.address=dns:///localhost:9090"
+        "lighting.config.client.auto-start=false",
+        "lighting.config.client.server.address=dns:///localhost:9090"
 })
 class LightingEmbeddedAutoConfigurationTest {
 

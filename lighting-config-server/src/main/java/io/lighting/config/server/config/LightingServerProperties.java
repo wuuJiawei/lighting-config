@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@ConfigurationProperties(prefix = "lighting")
+@ConfigurationProperties(prefix = "lighting.config")
 public class LightingServerProperties {
 
     private Mode mode = Mode.STANDALONE;

@@ -10,37 +10,13 @@
     </parent>
 
     <artifactId>lighting-config-example</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <name>lighting-config-example</name>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.lighting</groupId>
-            <artifactId>lighting-config-spring-boot</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+    <modules>
+        <module>lighting-config-example-embedded</module>
+        <module>lighting-config-example-standalone</module>
+        <module>lighting-config-example-client</module>
+    </modules>
 
 </project>

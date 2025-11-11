@@ -7,18 +7,19 @@ spring:
     password: ${LIGHTING_DB_PASSWORD:lighting}
     driver-class-name: ${LIGHTING_DB_DRIVER:org.postgresql.Driver}
 lighting:
-  mode: standalone
-  grpc:
-    enabled: true
-    port: 9090
-  storage:
-    type: ${LIGHTING_STORAGE_TYPE:jdbc}
-    settings:
-      url: ${spring.datasource.url:}
-      username: ${spring.datasource.username:}
-      password: ${spring.datasource.password:}
-  redis:
-    enabled: false
-  auth:
-    enabled: true
-    mode: token
+  config:
+    mode: standalone
+    grpc:
+      enabled: true
+      port: 9090
+    storage:
+      type: ${LIGHTING_STORAGE_TYPE:jdbc}
+      settings:
+        url: ${spring.datasource.url:}
+        username: ${spring.datasource.username:}
+        password: ${spring.datasource.password:}
+    redis:
+      enabled: false
+    auth:
+      enabled: true
+      mode: token
