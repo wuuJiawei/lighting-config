@@ -23,7 +23,7 @@
 
 4. **服务器模块（lighting-config-server）** (进行中)
    - ✅ 增加 `/api/poll` REST 端点，返回 `PollResponse`（当前基于快照 + 版本过滤）。
-   - 🚧 移除所有 gRPC 组件与依赖（已删除服务端实现与配置项，根 POM 中的 gRPC 版本/插件待清理）。
+   - ✅ 移除所有 gRPC 组件与依赖（服务端实现、配置项、根 POM 中的 gRPC BOM 及 protoc 插件已删除）。
    - 结合 `ConfigApplicationService`/`NotifyEngine` 计算差异列表与版本；必要时新增内存缓存或长轮询机制。
    - 提供可选的限流/安全策略（轻量 token），以支撑高频轮询。
 
