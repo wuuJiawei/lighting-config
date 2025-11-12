@@ -2,6 +2,8 @@ package io.lighting.config.client.transport;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.lighting.config.client.config.ClientOptions;
 import io.lighting.config.core.dto.ChangeType;
 import io.lighting.config.core.dto.ConfigChange;
@@ -41,7 +43,9 @@ public class HttpPollingTransport implements PollingTransport {
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
         this.objectMapper = new ObjectMapper()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                .registerModule(new JavaTimeModule())
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         this.baseUri = normalizeBase(options.getServerAddress());
         this.requestTimeout = Duration.ofSeconds(5);
     }
