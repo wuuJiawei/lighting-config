@@ -30,3 +30,20 @@ CREATE TABLE revision (
 );
 
 CREATE INDEX idx_revision_lookup ON revision (tenant, namespace, app_id, key);
+
+-- Sample seed data for demos
+INSERT ALL
+    INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
+        VALUES ('default', 'prod', 'order-service', 'feature.pay.v2', 'TEXT', 'true', 3, TO_CLOB('{"env":"prod","owner":"fintech"}'), 1)
+    INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
+        VALUES ('default', 'prod', 'order-service', 'datasource.read', 'JSON', '{"url":"jdbc:oracle:thin:@//db:1521/order","user":"order_ro"}', 2, TO_CLOB('{"tier":"critical"}'), 1)
+    INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
+        VALUES ('default', 'beta', 'search-service', 'feature.ai.ranking', 'TEXT', 'false', 1, TO_CLOB('{"experiment":"A/B"}'), 1)
+SELECT * FROM dual;
+
+INSERT ALL
+    INTO revision (tenant, namespace, app_id, key, version, op, operator, diff)
+        VALUES ('default', 'prod', 'order-service', 'feature.pay.v2', 3, 'UPSERT', 'system', TO_CLOB('{"old":"false","new":"true"}'))
+    INTO revision (tenant, namespace, app_id, key, version, op, operator, diff)
+        VALUES ('default', 'prod', 'order-service', 'datasource.read', 2, 'UPSERT', 'dba', TO_CLOB('{"old":"jdbc:oracle:thin:@//old","new":"jdbc:oracle:thin:@//db"}'))
+SELECT * FROM dual;

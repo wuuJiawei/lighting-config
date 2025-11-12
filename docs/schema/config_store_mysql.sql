@@ -28,3 +28,17 @@ CREATE TABLE IF NOT EXISTS revision (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_revision_lookup (tenant, namespace, app_id, `key`)
 ) ENGINE=InnoDB;
+
+-- Sample seed data for demos
+INSERT INTO config_item (tenant, namespace, app_id, `key`, content_type, value, version, tags, enabled)
+VALUES
+    ('default', 'prod', 'order-service', 'feature.pay.v2', 'TEXT', 'true', 3, JSON_OBJECT('env','prod','owner','fintech'), 1),
+    ('default', 'prod', 'order-service', 'datasource.read', 'JSON', '{"url":"jdbc:mysql://mysql:3306/order","user":"order_ro"}', 2, JSON_OBJECT('tier','critical'), 1),
+    ('default', 'beta', 'search-service', 'feature.ai.ranking', 'TEXT', 'false', 1, JSON_OBJECT('experiment','A/B'), 1)
+ON DUPLICATE KEY UPDATE value = VALUES(value);
+
+INSERT INTO revision (tenant, namespace, app_id, `key`, version, op, operator, diff)
+VALUES
+    ('default', 'prod', 'order-service', 'feature.pay.v2', 3, 'UPSERT', 'system', '{"old":"false","new":"true"}'),
+    ('default', 'prod', 'order-service', 'datasource.read', 2, 'UPSERT', 'dba', '{"old":"jdbc:mysql://old","new":"jdbc:mysql://mysql"}')
+ON DUPLICATE KEY UPDATE diff = VALUES(diff);

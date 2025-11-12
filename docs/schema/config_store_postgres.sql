@@ -29,3 +29,17 @@ CREATE TABLE IF NOT EXISTS revision (
 );
 
 CREATE INDEX IF NOT EXISTS idx_revision_lookup ON revision (tenant, namespace, app_id, key);
+
+-- Sample seed data for demos
+INSERT INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
+VALUES
+    ('default', 'prod', 'order-service', 'feature.pay.v2', 'TEXT', 'true', 3, '{"env":"prod","owner":"fintech"}'::jsonb, TRUE),
+    ('default', 'prod', 'order-service', 'datasource.read', 'JSON', '{"url":"jdbc:postgresql://pg:5432/order","user":"order_ro"}', 2, '{"tier":"critical"}'::jsonb, TRUE),
+    ('default', 'beta', 'search-service', 'feature.ai.ranking', 'TEXT', 'false', 1, '{"experiment":"A/B"}'::jsonb, TRUE)
+ON CONFLICT (tenant, namespace, app_id, key) DO NOTHING;
+
+INSERT INTO revision (tenant, namespace, app_id, key, version, op, operator, diff)
+VALUES
+    ('default', 'prod', 'order-service', 'feature.pay.v2', 3, 'UPSERT', 'system', '{"old":"false","new":"true"}'::jsonb),
+    ('default', 'prod', 'order-service', 'datasource.read', 2, 'UPSERT', 'dba', '{"old":"jdbc:postgresql://old","new":"jdbc:postgresql://pg"}'::jsonb)
+ON CONFLICT DO NOTHING;
