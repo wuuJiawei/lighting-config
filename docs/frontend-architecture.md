@@ -6,11 +6,14 @@
 - 设计可渐进增强的项目骨架，方便后续 Agent/Contributor 直接补充页面。
 
 ## 2. 技术栈
-- **构建**：Vite 6 + TypeScript 5（更快的本地开发体验，可轻松接入 Vitest/Cypress）。
+- **构建**：Vite 6 + TypeScript 5，保持快速冷启动与出色的 HMR 体验，可无缝接入 Vitest/Cypress。
 - **框架**：React 19 + React Router 7。
-- **状态管理**：TanStack Query 5（数据获取 + 缓存），对表单/局部状态使用 React Hook Form。
-- **UI 体系**：Ant Design 5（主题可定制，表格/表单组件齐全），搭配 CSS Modules + PostCSS。
-- **可观测**：集成 ESLint + Stylelint + Prettier，Vitest 做单元/组件测试，Cypress 处理关键 E2E。
+- **状态管理**：
+  - TanStack Query 5 负责远程数据获取与缓存（分页、轮询、错误边界等）。
+  - Zustand 5 管理本地 UI/表单状态（右侧抽屉、临时筛选、向导步骤等），保持比 Redux/MobX 更轻量。
+- **UI 体系**：shadcn/ui（Radix UI primitives + Tailwind CSS）。提供无样式但可组合的组件，我们自定义主题以贴合 lighting-config 的观感，避免 Ant Design 重皮肤&体积负担。
+- **表单**：React Hook Form + zod schema，联合 shadcn Form 组件，统一校验与类型安全。
+- **可观测**：ESLint（flat config）+ Prettier + Stylelint，Vitest 做单元/组件测试，Cypress 负责关键 E2E。
 
 ## 3. 项目结构（计划）
 ```
@@ -28,23 +31,26 @@ lighting-config-console/
 │   │   ├── ConfigEditor/
 │   │   ├── Namespace/
 │   │   └── Audit/
-│   ├── components/             # 共享 UI（表格、搜索栏、EmptyState 等）
+│   ├── components/
+│   │   ├── ui/                 # shadcn 生成的基础组件(Button/Input/Dialog...)
+│   │   └── shared/             # 复合组件（表格、搜索栏、EmptyState 等）
 │   ├── api/
 │   │   ├── client.ts           # axios 封装 + 拦截器
 │   │   └── config.ts           # `/api/config` 请求封装
-│   ├── hooks/                  # useConfigList/useTenantSelect 等
-│   ├── stores/                 # 未来若需要 Zustand/Context
+│   ├── hooks/                  # useConfigList/useTenantSelect/usePollingSwitch 等
+│   ├── stores/                 # Zustand slices（layout、config-editor 等）
 │   ├── utils/
-│   └── styles/
+│   └── styles/                 # Tailwind 基础样式、设计 Token
 └── tests/
     ├── unit/
     └── e2e/
 ```
 
 ## 4. 数据流 & 通信
-- 通过 REST API 与 server 交互，默认 baseURL=`/api`（同域部署，依赖反向代理解决跨域）。
-- TanStack Query 负责请求缓存、刷新、错误边界；Mutation 成功后自动刷新对应列表。
-- 轮询结果与动态变更目前通过 HTTP `/api/poll` 完成，未来如需更实时可扩展 WebSocket Gateway。
+- 通过 REST API 与 server 交互，默认 baseURL=`/api`（同域部署，可由 nginx/Spring 网关负责反向代理）。
+- TanStack Query 负责服务端数据，内置 `queryClient` 处理分页/重试/缓存失效；Mutation 成功后局部 `invalidate`.
+- Zustand 以 slice 形式管理 UI 状态（筛选条件、抽屉显隐、草稿 config），并暴露 hooks 给页面层。避免在 Query 中塞入 UI state。
+- 轮询结果与动态变更目前通过 HTTP `/api/poll` 完成，未来如需更实时可扩展 WebSocket/SSE Gateway。
 
 ## 5. 开发/构建脚本（计划）
 | 命令 | 说明 |
@@ -54,6 +60,7 @@ lighting-config-console/
 | `pnpm lint` | ESLint + Stylelint |
 | `pnpm build` | 产出 `dist/`，供 Spring Boot 或 Nginx 托管 |
 | `pnpm preview` | 本地预览生产包 |
+| `pnpm shadcn:add <component>` | 复用 shadcn/ui 生成的 Radix 封装组件 |
 
 > 依赖管理采用 `pnpm`，Lockfile 提交到仓库，Node 版本锁定 20.x。
 
