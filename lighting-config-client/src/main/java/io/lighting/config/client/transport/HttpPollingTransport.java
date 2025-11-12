@@ -53,7 +53,7 @@ public class HttpPollingTransport implements PollingTransport {
     @Override
     public PollResponse poll(PollRequest request) {
         try {
-            URI uri = baseUri.resolve("/api/poll");
+            URI uri = baseUri.resolve("/lighting-config/api/poll");
             String body = objectMapper.writeValueAsString(request);
             log.info("body : {}", body);
             log.info("uri : {}", uri);
