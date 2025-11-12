@@ -6,10 +6,11 @@ lighting:
     client:
       tenant: default
       namespace: default
-      app-id: demo-client
+      app-id: order-service
       poll-interval: 5s
       server:
         address: http://localhost:7086
+      banner-enabled: true
 logging:
   level:
     root: info

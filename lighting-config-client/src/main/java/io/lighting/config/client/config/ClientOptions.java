@@ -1,5 +1,7 @@
 package io.lighting.config.client.config;
 
+import io.lighting.config.core.util.AppScope;
+
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -17,6 +19,7 @@ public final class ClientOptions {
     private final String tenant;
     private final String namespace;
     private final String appId;
+    private final List<String> resolvedAppIds;
     private final Map<String, String> labels;
     private final Map<String, String> metadata;
     private final List<String> bootstrapPrefixes;
@@ -34,6 +37,7 @@ public final class ClientOptions {
         this.bootstrapPrefixes = List.copyOf(builder.bootstrapPrefixes);
         this.pollInterval = builder.pollInterval;
         this.bannerEnabled = builder.bannerEnabled;
+        this.resolvedAppIds = AppScope.parseWithGlobal(this.appId);
     }
 
     public static Builder builder() {
@@ -58,6 +62,10 @@ public final class ClientOptions {
 
     public String getAppId() {
         return appId;
+    }
+
+    public List<String> getResolvedAppIds() {
+        return resolvedAppIds;
     }
 
     public Map<String, String> getLabels() {

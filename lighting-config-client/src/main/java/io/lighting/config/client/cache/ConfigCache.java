@@ -3,7 +3,6 @@ package io.lighting.config.client.cache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.lighting.config.core.dto.ConfigChange;
-import io.lighting.config.core.model.ConfigItem;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -24,16 +23,17 @@ public class ConfigCache {
         return Optional.ofNullable(cache.getIfPresent(key));
     }
 
-    public void put(ConfigItem item) {
-        cache.put(item.getKey(), new Snapshot(item.getValue(), item.getContentType().name(), item.getVersion()));
-    }
-
-    public void apply(ConfigChange change) {
+    public void apply(ConfigChange change, int priority) {
         if (change.isDeleted()) {
             cache.invalidate(change.getCoordinate().getKey());
         } else {
             cache.put(change.getCoordinate().getKey(),
-                    new Snapshot(change.getValue(), change.getContentType().name(), change.getVersion()));
+                    new Snapshot(
+                            change.getValue(),
+                            change.getContentType().name(),
+                            change.getVersion(),
+                            change.getCoordinate().getAppId(),
+                            priority));
         }
     }
 
@@ -41,11 +41,15 @@ public class ConfigCache {
         private final String value;
         private final String contentType;
         private final long version;
+        private final String appId;
+        private final int priority;
 
-        public Snapshot(String value, String contentType, long version) {
+        public Snapshot(String value, String contentType, long version, String appId, int priority) {
             this.value = value;
             this.contentType = contentType;
             this.version = version;
+            this.appId = appId;
+            this.priority = priority;
         }
 
         public String value() {
@@ -58,6 +62,14 @@ public class ConfigCache {
 
         public long version() {
             return version;
+        }
+
+        public String appId() {
+            return appId;
+        }
+
+        public int priority() {
+            return priority;
         }
     }
 

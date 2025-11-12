@@ -63,7 +63,7 @@ public class InMemoryChangeFeed implements ChangeFeed {
         if (!change.getCoordinate().getNamespace().equals(request.getNamespace())) {
             return false;
         }
-        if (!change.getCoordinate().getAppId().equals(request.getAppId())) {
+        if (!request.getResolvedAppIds().contains(change.getCoordinate().getAppId())) {
             return false;
         }
         if (request.getPrefixes().isEmpty()) {

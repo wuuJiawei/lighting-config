@@ -1,5 +1,7 @@
 package io.lighting.config.core.dto;
 
+import io.lighting.config.core.util.AppScope;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +67,10 @@ public final class PollRequest {
 
     public long getClientTime() {
         return clientTime;
+    }
+
+    public List<String> getResolvedAppIds() {
+        return AppScope.parseWithGlobal(appId);
     }
 
     public static final class Builder {

@@ -10,7 +10,9 @@ import io.lighting.config.core.dto.PollAdvice;
 import io.lighting.config.core.dto.PollRequest;
 import io.lighting.config.core.dto.PollResponse;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +44,9 @@ public class LightingClient implements AutoCloseable {
     private final PollingTransport transport;
     private final ConfigCache cache = new ConfigCache();
     private final ListenerRegistry listenerRegistry = new ListenerRegistry();
+    private final List<String> appScopes;
+    private final Map<String, Integer> scopePriority;
+    private final int fallbackPriority;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicLong lastVersion = new AtomicLong(0);
     private final ExecutorService notifier = Executors.newSingleThreadExecutor(r -> {
@@ -60,6 +65,9 @@ public class LightingClient implements AutoCloseable {
                           PollingTransport transport) {
         this.options = options;
         this.transport = transport;
+        this.appScopes = options.getResolvedAppIds();
+        this.scopePriority = buildScopePriority(appScopes);
+        this.fallbackPriority = appScopes.size();
     }
 
     public void start() {
@@ -112,8 +120,31 @@ public class LightingClient implements AutoCloseable {
     }
 
     private void applyChange(ConfigChange change) {
-        cache.apply(change);
+        int priority = resolveScopePriority(change.getCoordinate().getAppId());
+        Optional<ConfigCache.Snapshot> current = cache.get(change.getCoordinate().getKey());
+        if (current.isPresent()) {
+            ConfigCache.Snapshot snapshot = current.get();
+            if (priority > snapshot.priority()) {
+                return;
+            }
+            if (priority == snapshot.priority() && change.getVersion() <= snapshot.version()) {
+                return;
+            }
+        }
+        cache.apply(change, priority);
         notifier.submit(() -> listenerRegistry.notifyListeners(change));
+    }
+
+    private Map<String, Integer> buildScopePriority(List<String> scopes) {
+        Map<String, Integer> priority = new HashMap<>();
+        for (int i = 0; i < scopes.size(); i++) {
+            priority.put(scopes.get(i), i);
+        }
+        return priority;
+    }
+
+    private int resolveScopePriority(String appId) {
+        return scopePriority.getOrDefault(appId, fallbackPriority);
     }
 
     public Optional<String> get(String key) {

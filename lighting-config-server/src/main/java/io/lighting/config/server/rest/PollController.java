@@ -19,8 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * REST endpoint providing polling responses for clients adopting the HTTP polling transport.
@@ -55,16 +56,7 @@ public class PollController {
     }
 
     private PollResponse snapshotResponse(PollRequest request) {
-        PullQuery.Builder builder = PullQuery.builder()
-                .tenant(request.getTenant())
-                .namespace(request.getNamespace())
-                .appId(request.getAppId());
-        if (!request.getPrefixes().isEmpty()) {
-            builder.selector(ConfigSelector.byPrefix(request.getPrefixes().get(0)));
-        }
-        List<ConfigChange> snapshot = applicationService.list(builder.build()).stream()
-                .map(this::toChange)
-                .collect(Collectors.toList());
+        List<ConfigChange> snapshot = aggregateSnapshot(request);
         long version = changeFeed.currentOffset();
         return PollResponse.builder()
                 .version(version)
@@ -84,5 +76,22 @@ public class PollController {
                 .deleted(!item.isEnabled())
                 .occurredAt(item.getUpdatedAt().toEpochMilli())
                 .build();
+    }
+
+    private List<ConfigChange> aggregateSnapshot(PollRequest request) {
+        Map<String, ConfigChange> merged = new LinkedHashMap<>();
+        for (String appId : request.getResolvedAppIds()) {
+            PullQuery.Builder builder = PullQuery.builder()
+                    .tenant(request.getTenant())
+                    .namespace(request.getNamespace())
+                    .appId(appId);
+            if (!request.getPrefixes().isEmpty()) {
+                builder.selector(ConfigSelector.byPrefix(request.getPrefixes().get(0)));
+            }
+            applicationService.list(builder.build()).stream()
+                    .map(this::toChange)
+                    .forEach(change -> merged.put(change.getCoordinate().getKey(), change));
+        }
+        return List.copyOf(merged.values());
     }
 }

@@ -30,7 +30,7 @@ class LightingClientTest {
     @BeforeEach
     void setUp() {
         transport = new StubTransport();
-        transport.enqueue(upsert("alpha", "v1", 1));
+        transport.enqueue(upsert("app", "alpha", "v1", 1));
         ClientOptions options = ClientOptions.builder()
                 .serverAddress("http://localhost:8080")
                 .tenant("tenant")
@@ -61,10 +61,22 @@ class LightingClientTest {
             latch.countDown();
         });
 
-        transport.enqueue(upsert("feature.toggle", "true", 2));
+        transport.enqueue(upsert("app", "feature.toggle", "true", 2));
         assertTrue(latch.await(1, TimeUnit.SECONDS), "listener should be invoked");
         assertEquals("true", received.get().getValue());
         assertTrue(waitForValue("feature.toggle", "true"));
+    }
+
+    @Test
+    void globalChangesDoNotOverrideScopedValue() throws InterruptedException {
+        transport.enqueue(
+                upsert("__global__", "shared.flag", "false", 2),
+                upsert("app", "shared.flag", "true", 3));
+        assertTrue(waitForValue("shared.flag", "true"));
+
+        transport.enqueue(upsert("__global__", "shared.flag", "off", 4));
+        Thread.sleep(200);
+        assertEquals("true", client.get("shared.flag").orElse("false"));
     }
 
     private boolean waitForValue(String key, String expected) throws InterruptedException {
@@ -79,9 +91,9 @@ class LightingClientTest {
         return false;
     }
 
-    private static ConfigChange upsert(String key, String value, long version) {
+    private static ConfigChange upsert(String appId, String key, String value, long version) {
         return ConfigChange.builder()
-                .coordinate(ConfigCoordinate.of("tenant", "ns", "app", key))
+                .coordinate(ConfigCoordinate.of("tenant", "ns", appId, key))
                 .version(version)
                 .type(ChangeType.UPSERT)
                 .contentType(ContentType.TEXT)
@@ -95,10 +107,12 @@ class LightingClientTest {
         private final List<PollResponse> responses = new ArrayList<>();
         private int index = 0;
 
-        void enqueue(ConfigChange change) {
+        void enqueue(ConfigChange... changes) {
+            List<ConfigChange> payload = List.of(changes);
+            long version = payload.isEmpty() ? 0 : payload.get(payload.size() - 1).getVersion();
             responses.add(PollResponse.builder()
-                    .version(change.getVersion())
-                    .items(List.of(change))
+                    .version(version)
+                    .items(payload)
                     .advice(PollAdvice.builder().nextInterval(Duration.ofMillis(50)).build())
                     .build());
         }

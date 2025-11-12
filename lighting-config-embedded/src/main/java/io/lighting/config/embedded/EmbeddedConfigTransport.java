@@ -14,6 +14,7 @@ import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.service.ConfigApplicationService;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -42,7 +43,7 @@ class EmbeddedConfigTransport implements PollingTransport {
             changes = snapshot(request);
             version = latestVersion(changes, version);
         } else {
-            changes = drainPending(request.getLastVersion());
+            changes = drainPending(request);
             version = latestVersion(changes, version);
         }
         return PollResponse.builder()
@@ -53,27 +54,32 @@ class EmbeddedConfigTransport implements PollingTransport {
     }
 
     private List<ConfigChange> snapshot(PollRequest request) {
-        PullQuery query = PullQuery.builder()
-                .tenant(request.getTenant())
-                .namespace(request.getNamespace())
-                .appId(request.getAppId())
-                .build();
-        List<ConfigChange> changes = new ArrayList<>();
-        for (ConfigItem item : applicationService.list(query)) {
-            changes.add(toChange(item));
+        List<ConfigChange> result = new ArrayList<>();
+        for (String appId : request.getResolvedAppIds()) {
+            PullQuery query = PullQuery.builder()
+                    .tenant(request.getTenant())
+                    .namespace(request.getNamespace())
+                    .appId(appId)
+                    .build();
+            for (ConfigItem item : applicationService.list(query)) {
+                result.add(toChange(item));
+            }
         }
         pendingEvents.clear();
-        return changes;
+        return deduplicateByKey(result);
     }
 
-    private List<ConfigChange> drainPending(long lastVersion) {
+    private List<ConfigChange> drainPending(PollRequest request) {
         List<ConfigChange> result = new ArrayList<>();
         pendingEvents.removeIf(change -> {
-            if (change.getVersion() > lastVersion) {
-                result.add(change);
-                return true;
+            if (change.getVersion() <= request.getLastVersion()) {
+                return false;
             }
-            return false;
+            if (!matchesScope(request, change)) {
+                return false;
+            }
+            result.add(change);
+            return true;
         });
         return result;
     }
@@ -96,6 +102,36 @@ class EmbeddedConfigTransport implements PollingTransport {
                 .deleted(!item.isEnabled())
                 .occurredAt(item.getUpdatedAt().toEpochMilli())
                 .build();
+    }
+
+    private boolean matchesScope(PollRequest request, ConfigChange change) {
+        if (!change.getCoordinate().getTenant().equals(request.getTenant())) {
+            return false;
+        }
+        if (!change.getCoordinate().getNamespace().equals(request.getNamespace())) {
+            return false;
+        }
+        if (!request.getResolvedAppIds().contains(change.getCoordinate().getAppId())) {
+            return false;
+        }
+        if (request.getPrefixes().isEmpty()) {
+            return true;
+        }
+        String key = change.getCoordinate().getKey();
+        for (String prefix : request.getPrefixes()) {
+            if (key.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<ConfigChange> deduplicateByKey(List<ConfigChange> changes) {
+        LinkedHashMap<String, ConfigChange> dedup = new LinkedHashMap<>();
+        for (ConfigChange change : changes) {
+            dedup.put(change.getCoordinate().getKey(), change);
+        }
+        return new ArrayList<>(dedup.values());
     }
 
     @Override
