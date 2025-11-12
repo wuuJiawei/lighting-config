@@ -1,6 +1,5 @@
 package io.lighting.config.core.dto;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -13,13 +12,13 @@ public final class PollResponse {
     private final long version;
     private final List<ConfigChange> items;
     private final PollAdvice advice;
-    private final Instant serverTime;
+    private final long serverTime;
 
     private PollResponse(Builder builder) {
         this.version = builder.version;
         this.items = Collections.unmodifiableList(List.copyOf(builder.items));
         this.advice = builder.advice == null ? PollAdvice.builder().build() : builder.advice;
-        this.serverTime = builder.serverTime == null ? Instant.now() : builder.serverTime;
+        this.serverTime = builder.serverTime == null ? System.currentTimeMillis() : builder.serverTime;
     }
 
     public static Builder builder() {
@@ -38,7 +37,7 @@ public final class PollResponse {
         return advice;
     }
 
-    public Instant getServerTime() {
+    public long getServerTime() {
         return serverTime;
     }
 
@@ -50,7 +49,7 @@ public final class PollResponse {
         private long version;
         private List<ConfigChange> items = List.of();
         private PollAdvice advice;
-        private Instant serverTime;
+        private Long serverTime;
 
         public Builder version(long version) {
             this.version = version;
@@ -67,7 +66,7 @@ public final class PollResponse {
             return this;
         }
 
-        public Builder serverTime(Instant serverTime) {
+        public Builder serverTime(Long serverTime) {
             this.serverTime = serverTime;
             return this;
         }

@@ -13,7 +13,6 @@ import io.lighting.config.core.model.ContentType;
 import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.service.ConfigApplicationService;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -95,7 +94,7 @@ class EmbeddedConfigTransport implements PollingTransport {
                 .contentType(item.getContentType())
                 .value(item.getValue())
                 .deleted(!item.isEnabled())
-                .occurredAt(item.getUpdatedAt())
+                .occurredAt(item.getUpdatedAt().toEpochMilli())
                 .build();
     }
 

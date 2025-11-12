@@ -10,7 +10,6 @@ import io.lighting.config.core.dto.PollResponse;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ContentType;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -87,7 +86,7 @@ class LightingClientTest {
                 .type(ChangeType.UPSERT)
                 .contentType(ContentType.TEXT)
                 .value(value)
-                .occurredAt(Instant.now())
+                .occurredAt(System.currentTimeMillis())
                 .build();
     }
 

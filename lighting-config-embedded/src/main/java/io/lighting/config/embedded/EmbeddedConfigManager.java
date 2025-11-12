@@ -105,7 +105,7 @@ public final class EmbeddedConfigManager implements AutoCloseable {
                 .contentType(item.getContentType())
                 .value(item.getValue())
                 .deleted(type == ChangeType.DELETE)
-                .occurredAt(Instant.now())
+                .occurredAt(System.currentTimeMillis())
                 .build();
         notifier.submit(() -> listeners.forEach(listener -> listener.accept(change)));
     }

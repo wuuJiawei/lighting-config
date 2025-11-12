@@ -2,7 +2,6 @@ package io.lighting.config.core.dto;
 
 import io.lighting.config.core.model.ConfigCoordinate;
 
-import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -13,13 +12,13 @@ public final class ConfigChangeEvent {
     private final ConfigChange change;
     private final String operator;
     private final String source;
-    private final Instant publishedAt;
+    private final long publishedAt;
 
     private ConfigChangeEvent(Builder builder) {
         this.change = Objects.requireNonNull(builder.change, "change");
         this.operator = builder.operator;
         this.source = builder.source;
-        this.publishedAt = Objects.requireNonNull(builder.publishedAt, "publishedAt");
+        this.publishedAt = builder.publishedAt == null ? 0L : builder.publishedAt;
     }
 
     public static Builder builder() {
@@ -42,7 +41,7 @@ public final class ConfigChangeEvent {
         return source;
     }
 
-    public Instant getPublishedAt() {
+    public long getPublishedAt() {
         return publishedAt;
     }
 
@@ -50,7 +49,7 @@ public final class ConfigChangeEvent {
         private ConfigChange change;
         private String operator = "system";
         private String source = "server";
-        private Instant publishedAt = Instant.EPOCH;
+        private Long publishedAt = 0L;
 
         public Builder change(ConfigChange change) {
             this.change = change;
@@ -67,7 +66,7 @@ public final class ConfigChangeEvent {
             return this;
         }
 
-        public Builder publishedAt(Instant publishedAt) {
+        public Builder publishedAt(Long publishedAt) {
             this.publishedAt = publishedAt;
             return this;
         }

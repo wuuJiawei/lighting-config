@@ -62,7 +62,7 @@ class LightingClientAutoConfigurationTest {
                 .type(ChangeType.UPSERT)
                 .contentType(ContentType.TEXT)
                 .value("on")
-                .occurredAt(Instant.now())
+                .occurredAt(System.currentTimeMillis())
                 .build();
         CountDownLatch latch = testBean.expectEvent();
         transport.emit(change);
@@ -186,7 +186,7 @@ class LightingClientAutoConfigurationTest {
                     .contentType(item.getContentType())
                     .value(item.getValue())
                     .deleted(!item.isEnabled())
-                    .occurredAt(item.getUpdatedAt())
+                    .occurredAt(item.getUpdatedAt().toEpochMilli())
                     .build();
         }
     }

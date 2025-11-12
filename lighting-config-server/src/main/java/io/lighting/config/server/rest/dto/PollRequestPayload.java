@@ -2,7 +2,6 @@ package io.lighting.config.server.rest.dto;
 
 import io.lighting.config.core.dto.PollRequest;
 
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,7 @@ public class PollRequestPayload {
     private Map<String, String> metadata = new LinkedHashMap<>();
     private long lastVersion;
     private List<String> prefixes = List.of();
+    private Long clientTime;
 
     public PollRequest toRequest() {
         return PollRequest.builder()
@@ -26,7 +26,7 @@ public class PollRequestPayload {
                 .metadata(metadata)
                 .lastVersion(lastVersion)
                 .prefixes(prefixes)
-                .clientTime(Instant.now())
+                .clientTime(clientTime != null ? clientTime : System.currentTimeMillis())
                 .build();
     }
 
@@ -84,5 +84,13 @@ public class PollRequestPayload {
 
     public void setPrefixes(List<String> prefixes) {
         this.prefixes = prefixes == null ? List.of() : List.copyOf(prefixes);
+    }
+
+    public Long getClientTime() {
+        return clientTime;
+    }
+
+    public void setClientTime(Long clientTime) {
+        this.clientTime = clientTime;
     }
 }

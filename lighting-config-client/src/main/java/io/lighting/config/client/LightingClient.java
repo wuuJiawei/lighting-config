@@ -10,7 +10,6 @@ import io.lighting.config.core.dto.PollAdvice;
 import io.lighting.config.core.dto.PollRequest;
 import io.lighting.config.core.dto.PollResponse;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -88,7 +87,7 @@ public class LightingClient implements AutoCloseable {
                     .metadata(options.getMetadata())
                     .lastVersion(bootstrap ? 0 : lastVersion.get())
                     .prefixes(options.getBootstrapPrefixes())
-                    .clientTime(Instant.now())
+                    .clientTime(System.currentTimeMillis())
                     .build();
             PollResponse response = transport.poll(request);
             if (!response.getItems().isEmpty() && response.getVersion() > lastVersion.get()) {

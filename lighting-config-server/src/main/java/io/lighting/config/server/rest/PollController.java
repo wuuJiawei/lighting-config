@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,7 +50,7 @@ public class PollController {
                 .version(batch.getLastVersion())
                 .items(batch.getChanges())
                 .advice(PollAdvice.builder().nextInterval(defaultInterval).build())
-                .serverTime(Instant.now())
+                .serverTime(System.currentTimeMillis())
                 .build();
     }
 
@@ -71,7 +70,7 @@ public class PollController {
                 .version(version)
                 .items(snapshot)
                 .advice(PollAdvice.builder().nextInterval(defaultInterval).build())
-                .serverTime(Instant.now())
+                .serverTime(System.currentTimeMillis())
                 .build();
     }
 
@@ -83,7 +82,7 @@ public class PollController {
                 .contentType(item.getContentType())
                 .value(item.getValue())
                 .deleted(!item.isEnabled())
-                .occurredAt(item.getUpdatedAt())
+                .occurredAt(item.getUpdatedAt().toEpochMilli())
                 .build();
     }
 }

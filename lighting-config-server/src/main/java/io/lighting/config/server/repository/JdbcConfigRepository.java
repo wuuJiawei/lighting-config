@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +52,7 @@ public class JdbcConfigRepository implements ConfigRepository {
     @Override
     public List<ConfigItem> list(String tenant, String namespace, String appId, String prefix) {
         MapSqlParameterSource params = baseParams(tenant, namespace, appId);
-        params.addValue("prefix", prefix == null ? null : prefix + "%");
+        params.addValue("prefix", prefix == null ? null : prefix + "%", Types.VARCHAR);
         return jdbcTemplate.query(SELECT_PREFIX, params, rowMapper);
     }
 

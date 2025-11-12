@@ -3,7 +3,6 @@ package io.lighting.config.core.dto;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ContentType;
 
-import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -17,7 +16,7 @@ public final class ConfigChange {
     private final ContentType contentType;
     private final String value;
     private final boolean deleted;
-    private final Instant occurredAt;
+    private final long occurredAt;
 
     private ConfigChange(Builder builder) {
         this.coordinate = Objects.requireNonNull(builder.coordinate, "coordinate");
@@ -26,7 +25,7 @@ public final class ConfigChange {
         this.contentType = Objects.requireNonNull(builder.contentType, "contentType");
         this.value = builder.value;
         this.deleted = builder.deleted;
-        this.occurredAt = Objects.requireNonNull(builder.occurredAt, "occurredAt");
+        this.occurredAt = builder.occurredAt == null ? 0L : builder.occurredAt;
     }
 
     public static Builder builder() {
@@ -57,7 +56,7 @@ public final class ConfigChange {
         return deleted;
     }
 
-    public Instant getOccurredAt() {
+    public long getOccurredAt() {
         return occurredAt;
     }
 
@@ -68,7 +67,7 @@ public final class ConfigChange {
         private ContentType contentType = ContentType.TEXT;
         private String value = "";
         private boolean deleted;
-        private Instant occurredAt = Instant.EPOCH;
+        private Long occurredAt = 0L;
 
         public Builder coordinate(ConfigCoordinate coordinate) {
             this.coordinate = coordinate;
@@ -100,7 +99,7 @@ public final class ConfigChange {
             return this;
         }
 
-        public Builder occurredAt(Instant occurredAt) {
+        public Builder occurredAt(Long occurredAt) {
             this.occurredAt = occurredAt;
             return this;
         }

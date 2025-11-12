@@ -11,7 +11,6 @@ import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.notify.ChangeFeed;
 import io.lighting.config.server.notify.NotifyEngine;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,7 +70,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .contentType(existing.map(ConfigItem::getContentType)
                         .orElse(io.lighting.config.core.model.ContentType.TEXT))
                 .deleted(true)
-                .occurredAt(now())
+                .occurredAt(nowMillis())
                 .build();
         publish(change, operator);
     }
@@ -83,7 +82,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .type(type)
                 .contentType(item.getContentType())
                 .value(item.getValue())
-                .occurredAt(now())
+                .occurredAt(nowMillis())
                 .build();
         publish(change, operator);
     }
@@ -93,7 +92,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
         notifyEngine.publish(ConfigChangeEvent.builder()
                 .change(change)
                 .operator(operator)
-                .publishedAt(now())
+                .publishedAt(nowMillis())
                 .build());
     }
 
@@ -101,7 +100,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
         return ConfigCoordinate.of(item.getTenant(), item.getNamespace(), item.getAppId(), item.getKey());
     }
 
-    private Instant now() {
-        return timeProvider.now();
+    private long nowMillis() {
+        return timeProvider.now().toEpochMilli();
     }
 }

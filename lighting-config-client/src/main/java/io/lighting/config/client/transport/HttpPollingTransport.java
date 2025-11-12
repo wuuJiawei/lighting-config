@@ -21,7 +21,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -88,7 +87,7 @@ public class HttpPollingTransport implements PollingTransport {
         public long version;
         public List<RestConfigChange> items = List.of();
         public RestAdvice advice;
-        public Instant serverTime;
+        public Long serverTime;
 
         PollResponse toDomain(Duration fallbackInterval) {
             Duration next = advice != null && advice.nextInterval != null ? advice.nextInterval : fallbackInterval;
@@ -96,7 +95,7 @@ public class HttpPollingTransport implements PollingTransport {
                     .version(version)
                     .items(items.stream().map(RestConfigChange::toChange).collect(Collectors.toList()))
                     .advice(PollAdvice.builder().nextInterval(next).throttled(advice != null && advice.throttled).build())
-                    .serverTime(serverTime)
+                    .serverTime(serverTime != null ? serverTime : System.currentTimeMillis())
                     .build();
         }
     }
@@ -112,7 +111,7 @@ public class HttpPollingTransport implements PollingTransport {
         public String contentType;
         public String value;
         public boolean deleted;
-        public String occurredAt;
+        public Long occurredAt;
 
         ConfigChange toChange() {
             return ConfigChange.builder()
@@ -122,15 +121,8 @@ public class HttpPollingTransport implements PollingTransport {
                     .contentType(ContentType.fromAlias(contentType))
                     .value(value)
                     .deleted(deleted)
-                    .occurredAt(parseInstant(occurredAt))
+                    .occurredAt(occurredAt != null ? occurredAt : System.currentTimeMillis())
                     .build();
-        }
-
-        private Instant parseInstant(String value) {
-            if (value == null || value.isEmpty()) {
-                return Instant.now();
-            }
-            return Instant.parse(value);
         }
     }
 

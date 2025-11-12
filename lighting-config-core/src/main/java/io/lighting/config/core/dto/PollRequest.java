@@ -1,6 +1,5 @@
 package io.lighting.config.core.dto;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,7 +18,7 @@ public final class PollRequest {
     private final Map<String, String> metadata;
     private final long lastVersion;
     private final List<String> prefixes;
-    private final Instant clientTime;
+    private final long clientTime;
 
     private PollRequest(Builder builder) {
         this.tenant = Objects.requireNonNull(builder.tenant, "tenant");
@@ -29,7 +28,7 @@ public final class PollRequest {
         this.metadata = Collections.unmodifiableMap(new LinkedHashMap<>(builder.metadata));
         this.lastVersion = builder.lastVersion;
         this.prefixes = List.copyOf(builder.prefixes);
-        this.clientTime = builder.clientTime == null ? Instant.now() : builder.clientTime;
+        this.clientTime = builder.clientTime == null ? System.currentTimeMillis() : builder.clientTime;
     }
 
     public static Builder builder() {
@@ -64,7 +63,7 @@ public final class PollRequest {
         return prefixes;
     }
 
-    public Instant getClientTime() {
+    public long getClientTime() {
         return clientTime;
     }
 
@@ -76,7 +75,7 @@ public final class PollRequest {
         private Map<String, String> metadata = new LinkedHashMap<>();
         private long lastVersion;
         private List<String> prefixes = List.of();
-        private Instant clientTime;
+        private Long clientTime;
 
         public Builder tenant(String tenant) {
             this.tenant = tenant;
@@ -113,7 +112,7 @@ public final class PollRequest {
             return this;
         }
 
-        public Builder clientTime(Instant clientTime) {
+        public Builder clientTime(Long clientTime) {
             this.clientTime = clientTime;
             return this;
         }
