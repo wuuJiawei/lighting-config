@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import java.nio.file.Paths;
 
 @SpringBootApplication
+@io.lighting.config.embedded.EnableLightingEmbedded
 public class EmbeddedDemoApplication {
 
     public static void main(String[] args) {

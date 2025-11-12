@@ -36,9 +36,9 @@ public class ConfigController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConfigResponse>> query(@RequestParam String tenant,
-                                                      @RequestParam String namespace,
-                                                      @RequestParam("appId") String appId,
+    public ResponseEntity<List<ConfigResponse>> query(@RequestParam(defaultValue = "default") String tenant,
+                                                      @RequestParam(defaultValue = "default") String namespace,
+                                                      @RequestParam(name = "appId", defaultValue = "default") String appId,
                                                       @RequestParam(required = false) String key,
                                                       @RequestParam(required = false) String prefix) {
         if (key != null && !key.isEmpty()) {
@@ -68,9 +68,9 @@ public class ConfigController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> delete(@RequestParam String tenant,
-                                       @RequestParam String namespace,
-                                       @RequestParam("appId") String appId,
+    public ResponseEntity<Void> delete(@RequestParam(defaultValue = "default") String tenant,
+                                       @RequestParam(defaultValue = "default") String namespace,
+                                       @RequestParam(name = "appId", defaultValue = "default") String appId,
                                        @RequestParam String key) {
         applicationService.delete(tenant, namespace, appId, key, "api");
         return ResponseEntity.noContent().build();

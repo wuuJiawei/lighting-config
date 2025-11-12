@@ -9,22 +9,19 @@ import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.spring.boot.autoconfigure.LightingClientAutoConfiguration;
 import io.lighting.config.spring.boot.autoconfigure.LightingClientListenerConfiguration;
-import javax.servlet.DispatcherType;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.Ordered;
-import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @ConditionalOnClass(io.lighting.config.server.rest.ConfigController.class)
@@ -64,27 +61,12 @@ public class LightingEmbeddedAutoConfiguration {
 
     @Configuration
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    static class EmbeddedWebComponents {
-
-        @Bean
-        public ServletRegistrationBean<DispatcherServlet> lightingEmbeddedServlet(ApplicationContext parent) {
-            LightingEmbeddedDispatcherServlet dispatcherServlet =
-                    new LightingEmbeddedDispatcherServlet(parent);
-            ServletRegistrationBean<DispatcherServlet> registration =
-                    new ServletRegistrationBean<>(dispatcherServlet, "/lighting-config/*");
-            registration.setName("lightingEmbeddedDispatcher");
-            registration.setLoadOnStartup(1);
-            return registration;
-        }
-
-        @Bean
-        public FilterRegistrationBean<LightingApiForwardFilter> lightingApiForwardFilter() {
-            FilterRegistrationBean<LightingApiForwardFilter> registration = new FilterRegistrationBean<>();
-            registration.setFilter(new LightingApiForwardFilter("/lighting-config"));
-            registration.setDispatcherTypes(DispatcherType.REQUEST);
-            registration.addUrlPatterns("/api/*");
-            registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
-            return registration;
+    @ComponentScan(basePackages = "io.lighting.config.server.rest")
+    static class EmbeddedWebComponents implements WebMvcConfigurer {
+        @Override
+        public void configurePathMatch(PathMatchConfigurer configurer) {
+            configurer.addPathPrefix("/lighting-config",
+                    handlerType -> handlerType.getPackageName().startsWith("io.lighting.config.server.rest"));
         }
     }
 }
