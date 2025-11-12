@@ -49,7 +49,7 @@ lighting:
 
 | 属性 | 类型 / 默认值 | 说明 |
 | --- | --- | --- |
-| `lighting.config.client.server.address` | `String`，`http://localhost:7086` | HTTP 轮询的基础地址。建议带上 server 的 context-path（默认 `/lighting-config`），例如 `http://10.0.0.10:7086/lighting-config`。 |
+| `lighting.config.client.server.address` | `String`，`http://localhost:7086` | HTTP 轮询的基础地址。 |
 | `lighting.config.client.server.tls` | `boolean`，`false` | 指示是否启用 TLS（目前仅作为 metadata，用于后续 gRPC/HTTP2）。若使用 HTTPS，请直接把 `address` 设为 `https://...`。 |
 
 ## 3. 运行时行为提示
@@ -57,7 +57,7 @@ lighting:
 1. **多作用域合并**：客户端会解析 `app-id` 字符串（逗号分隔），再自动追加 `__global__`。应用作用域靠前优先级更高，`__global__` 总在最后，只补充缺失键。
 2. **标签/元数据**：目前服务端默认只持久化，不做硬性约束；未来可以在 REST API 查询时通过 `labels/env` 等条件过滤。
 3. **开关逻辑**：`enabled=false` 会彻底跳过 AutoConfiguration；`auto-start=false` 只是不自动启动轮训线程。
-4. **Address 规范**：`HttpPollingTransport` 会把地址标准化（去掉末尾 `/`），并自动拼接 `/api/poll`。若后端部署在 `/lighting-config` context 下，请把 `address` 设置为 `http://host:port/lighting-config`。
+4. **Address 规范**：`HttpPollingTransport` 会把地址标准化（去掉末尾 `/`），并自动拼接 `/lighting-config/api/poll`。若后端部署在 `/nginx-example` context 下，请把 `address` 设置为 `http://host:port/nginx-example`。
 
 ## 4. 与 Spring 管理的 Bean 对应关系
 
