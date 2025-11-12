@@ -10,6 +10,9 @@ import io.lighting.config.core.dto.PollRequest;
 import io.lighting.config.core.dto.PollResponse;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ContentType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
  */
 public class HttpPollingTransport implements PollingTransport {
 
+    private static final Logger log = LoggerFactory.getLogger(HttpPollingTransport.class);
     private final ClientOptions options;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -47,6 +51,8 @@ public class HttpPollingTransport implements PollingTransport {
         try {
             URI uri = baseUri.resolve("/api/poll");
             String body = objectMapper.writeValueAsString(request);
+            log.info("body : {}", body);
+            log.info("uri : {}", uri);
             HttpRequest httpRequest = HttpRequest.newBuilder(uri)
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
@@ -62,6 +68,7 @@ public class HttpPollingTransport implements PollingTransport {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Polling interrupted", e);
         } catch (IOException e) {
+            log.error("Polling failed", e);
             throw new IllegalStateException("Failed to execute polling request", e);
         }
     }

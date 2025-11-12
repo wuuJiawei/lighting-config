@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  * REST endpoint providing polling responses for clients adopting the HTTP polling transport.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/lighting-config/api")
 public class PollController {
 
     private final ConfigApplicationService applicationService;

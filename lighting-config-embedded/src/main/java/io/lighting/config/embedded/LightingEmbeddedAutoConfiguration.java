@@ -7,8 +7,6 @@ import io.lighting.config.server.config.LightingServerProperties;
 import io.lighting.config.server.config.ServerInfrastructureConfiguration;
 import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.service.ConfigApplicationService;
-import io.lighting.config.spring.boot.autoconfigure.LightingClientAutoConfiguration;
-import io.lighting.config.spring.boot.autoconfigure.LightingClientListenerConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -24,12 +22,11 @@ import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(io.lighting.config.server.rest.ConfigController.class)
 @ConditionalOnProperty(prefix = "lighting.config", name = "mode", havingValue = "embedded")
 @EnableConfigurationProperties({LightingEmbeddedProperties.class, LightingServerProperties.class})
-@Import({ServerInfrastructureConfiguration.class,
-        LightingClientAutoConfiguration.class,
-        LightingClientListenerConfiguration.class})
+@ComponentScan(basePackages = "io.lighting.config.server.rest")
 public class LightingEmbeddedAutoConfiguration {
 
     @Bean
@@ -59,14 +56,4 @@ public class LightingEmbeddedAutoConfiguration {
         return new EmbeddedConfigTransport(applicationService, notifyEngine);
     }
 
-    @Configuration
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    @ComponentScan(basePackages = "io.lighting.config.server.rest")
-    static class EmbeddedWebComponents implements WebMvcConfigurer {
-        @Override
-        public void configurePathMatch(PathMatchConfigurer configurer) {
-            configurer.addPathPrefix("/lighting-config",
-                    handlerType -> handlerType.getPackageName().startsWith("io.lighting.config.server.rest"));
-        }
-    }
 }

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/config")
+@RequestMapping("/lighting-config/api/config")
 @Validated
 public class ConfigController {
 

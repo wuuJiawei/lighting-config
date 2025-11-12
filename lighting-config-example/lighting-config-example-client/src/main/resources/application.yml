@@ -10,3 +10,6 @@ lighting:
       poll-interval: 5s
       server:
         address: http://localhost:7086
+logging:
+  level:
+    root: info

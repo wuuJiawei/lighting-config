@@ -27,6 +27,12 @@ public class LightingValueBeanPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        // 跳过 Spring 自身的 Web/Framework Bean
+        String packageName = bean.getClass().getPackageName();
+        if (packageName.startsWith("org.springframework.")) {
+            return bean;
+        }
+
         ReflectionUtils.doWithFields(bean.getClass(), field -> {
             LightingValue annotation = field.getAnnotation(LightingValue.class);
             if (annotation != null) {
