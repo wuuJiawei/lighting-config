@@ -34,9 +34,9 @@ public class DatabaseConfiguration {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
-    @Bean
+    @Bean(name = "rawConfigRepository")
     @ConditionalOnBean(NamedParameterJdbcTemplate.class)
-    @ConditionalOnMissingBean(ConfigRepository.class)
+    @ConditionalOnMissingBean(name = "rawConfigRepository")
     public ConfigRepository jdbcConfigRepository(NamedParameterJdbcTemplate jdbcTemplate,
                                                  ObjectMapper objectMapper,
                                                  TimeProvider timeProvider) {

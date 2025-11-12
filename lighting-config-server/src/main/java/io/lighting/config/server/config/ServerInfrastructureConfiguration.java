@@ -10,9 +10,13 @@ import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.notify.SimpleEventBus;
 import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.server.service.DefaultConfigApplicationService;
+import io.lighting.config.server.repository.CachingConfigRepository;
 import io.lighting.config.server.repository.InMemoryConfigRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,9 +42,16 @@ public class ServerInfrastructureConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnBean(name = "rawConfigRepository")
+    @Primary
+    public ConfigRepository configRepository(@Qualifier("rawConfigRepository") ConfigRepository rawRepository) {
+        return new CachingConfigRepository(rawRepository);
+    }
+
+    @Bean(name = "rawConfigRepository")
+    @ConditionalOnMissingBean(name = "rawConfigRepository")
     @ConditionalOnProperty(prefix = "lighting.config.storage", name = "type", havingValue = "memory")
-    public ConfigRepository configRepository() {
+    public ConfigRepository inMemoryConfigRepository() {
         return new InMemoryConfigRepository();
     }
 

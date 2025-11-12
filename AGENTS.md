@@ -1,6 +1,6 @@
 # AGENTS
 
-本仓库是一个 **Java 11** 优先的新项目，所有 agent 需要围绕 `docs/系统设计文档.md` 确定的架构与约束推进工作：双形态配置中心、gRPC 推送、RDBMS 为权威存储、Redis + 本地缓存、SPI 插件化、安全与可观测性一体化。除非设计文档或产品负责人明确变更，否则禁止随意偏离该基线。
+本仓库是一个 **Java 11** 优先的新项目，所有 agent 需要围绕 `docs/系统设计文档.md` 确定的架构与约束推进工作：双形态配置中心、HTTP 长轮询、RDBMS 为权威存储 + 本地缓存（Caffeine）、SPI 插件化、安全与可观测性一体化。除非设计文档或产品负责人明确变更，否则禁止随意偏离该基线。
 
 ## 共享资源
 - `docs/系统设计文档.md`：功能/非功能要求、模块划分、接口、数据模型与部署脚本，用于一切决策背书。
@@ -23,8 +23,8 @@
 - **交付标准**：所有跨模块接口需经过一致性检查（命名、包路径、版本约定），并在 docs/ 记录。
 
 ### 2. Server Platform Agent
-- **职责**：负责 `lighting-config-server` 与 `lighting-config-spring-boot` 服务端部分，涵盖 REST/gRPC 入口、Notify Engine、AuthN/Z、EventBus。
-- **重点**：保证 gRPC watch/push 流程、REST Admin API、Spring Boot 自动装配与健康检查符合设计文档第 2/6/8/10 章要求。
+- **职责**：负责 `lighting-config-server` 与 `lighting-config-spring-boot` 服务端部分，涵盖 REST 入口、HTTP Poll、Notify Engine、AuthN/Z、EventBus。
+- **重点**：保证长轮询流程、REST Admin API、Spring Boot 自动装配与健康检查符合设计文档第 2/6/8/10 章要求。
 - **交付物**：可运行的 Spring Boot Server、Dockerfile/Compose 服务段、服务指标（Micrometer）以及默认鉴权实现。
 - **协作**：与 Storage Agent 确认仓储 SPI 实现，与 Architect Agent 对齐 API 变更。
 
@@ -35,10 +35,10 @@
 - **协作**：与 Server Agent 对齐协议与推送格式，与 Quality Agent 定义兼容性测试矩阵。
 
 ### 4. Storage & Consistency Agent
-- **职责**：实现 `lighting-config-core` SPI 默认实现、`lighting-config-server` 中的仓储桥接、Redis 二级缓存、本地缓存一致性策略。
-- **重点**：参照文档第 4/5/7/9 章；提供多数据库方言（MySQL/PostgreSQL/Oracle）脚本、Flyway/Liquibase 管理、Redis 失效策略、本地缓存版本校验。
+- **职责**：实现 `lighting-config-core` SPI 默认实现、`lighting-config-server` 中的仓储桥接、本地缓存一致性策略。
+- **重点**：参照文档第 4/5/7/9 章；提供多数据库方言（MySQL/PostgreSQL/Oracle）脚本、Flyway/Liquibase 管理、Caffeine 缓存策略、版本校验。
 - **交付物**：`ConfigRepository` 默认实现、缓存一致性方案说明、DB schema 脚本、性能基准测试报告。
-- **协作**：向 Server Agent 输出仓储接口，与 DevOps Agent 协同部署数据库/Redis 依赖。
+- **协作**：向 Server Agent 输出仓储接口，与 DevOps Agent 协同部署数据库依赖。
 
 ### 5. DevOps & Security Agent
 - **职责**：负责打包、容器化、Compose/Helm 样例、CI/CD、监控/日志/告警、安全策略（TLS、Token/JWT、审计日志）。

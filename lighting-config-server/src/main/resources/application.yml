@@ -17,8 +17,6 @@ lighting:
         url: ${spring.datasource.url:}
         username: ${spring.datasource.username:}
         password: ${spring.datasource.password:}
-    redis:
-      enabled: false
     auth:
       enabled: true
       mode: token

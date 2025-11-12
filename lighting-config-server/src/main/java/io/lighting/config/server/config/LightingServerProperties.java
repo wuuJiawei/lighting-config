@@ -2,7 +2,6 @@ package io.lighting.config.server.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -10,9 +9,7 @@ import java.util.Map;
 public class LightingServerProperties {
 
     private Mode mode = Mode.STANDALONE;
-    private final Server server = new Server();
     private final Storage storage = new Storage();
-    private final Redis redis = new Redis();
     private final Auth auth = new Auth();
 
     public Mode getMode() {
@@ -23,16 +20,8 @@ public class LightingServerProperties {
         this.mode = mode;
     }
 
-    public Server getServer() {
-        return server;
-    }
-
     public Storage getStorage() {
         return storage;
-    }
-
-    public Redis getRedis() {
-        return redis;
     }
 
     public Auth getAuth() {
@@ -42,27 +31,6 @@ public class LightingServerProperties {
     public enum Mode {
         STANDALONE,
         EMBEDDED
-    }
-
-    public static class Server {
-        private int port = 8080;
-        private Duration gracefulShutdown = Duration.ofSeconds(10);
-
-        public int getPort() {
-            return port;
-        }
-
-        public void setPort(int port) {
-            this.port = port;
-        }
-
-        public Duration getGracefulShutdown() {
-            return gracefulShutdown;
-        }
-
-        public void setGracefulShutdown(Duration gracefulShutdown) {
-            this.gracefulShutdown = gracefulShutdown;
-        }
     }
 
     public static class Storage {
@@ -79,36 +47,6 @@ public class LightingServerProperties {
 
         public Map<String, String> getSettings() {
             return settings;
-        }
-    }
-
-    public static class Redis {
-        private boolean enabled = false;
-        private String url = "";
-        private Duration ttl = Duration.ofMinutes(5);
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
-
-        public Duration getTtl() {
-            return ttl;
-        }
-
-        public void setTtl(Duration ttl) {
-            this.ttl = ttl;
         }
     }
 
