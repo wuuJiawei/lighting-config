@@ -54,8 +54,6 @@ public class HttpPollingTransport implements PollingTransport {
         try {
             URI uri = baseUri.resolve("/lighting-config/api/poll");
             String body = objectMapper.writeValueAsString(request);
-            log.info("body : {}", body);
-            log.info("uri : {}", uri);
             HttpRequest httpRequest = HttpRequest.newBuilder(uri)
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
