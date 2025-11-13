@@ -17,6 +17,7 @@ public class ConfigResponse {
     private final Map<String, String> labels;
     private final boolean enabled;
     private final Instant updatedAt;
+    private final String id;
 
     public ConfigResponse(ConfigItem item) {
         this.tenant = item.getTenant();
@@ -29,6 +30,7 @@ public class ConfigResponse {
         this.labels = item.getLabels();
         this.enabled = item.isEnabled();
         this.updatedAt = item.getUpdatedAt();
+        this.id = String.join(":", item.getTenant(), item.getNamespace(), item.getAppId(), item.getKey());
     }
 
     public String getTenant() {
@@ -69,5 +71,9 @@ public class ConfigResponse {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getId() {
+        return id;
     }
 }

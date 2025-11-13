@@ -20,3 +20,5 @@ lighting:
     auth:
       enabled: true
       mode: token
+      options:
+        tokens: ${LIGHTING_CONSOLE_TOKENS:lighting-console-token}
