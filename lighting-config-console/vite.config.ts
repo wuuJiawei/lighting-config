@@ -18,12 +18,17 @@ const config: UserConfig & { test: VitestUserConfig['test'] } = {
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
+      '/lighting-config/api': {
+        target: 'http://localhost:7086',
         changeOrigin: true,
       },
       '/actuator': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:7086',
+        changeOrigin: true,
+      },
+      // legacy aliases for earlier paths
+      '/api': {
+        target: 'http://localhost:7086/lighting-config/api',
         changeOrigin: true,
       },
     },
