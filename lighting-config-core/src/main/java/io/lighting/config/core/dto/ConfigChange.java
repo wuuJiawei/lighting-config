@@ -64,7 +64,7 @@ public final class ConfigChange {
         private ConfigCoordinate coordinate;
         private long version;
         private ChangeType type = ChangeType.UPSERT;
-        private ContentType contentType = ContentType.TEXT;
+        private ContentType contentType = ContentType.STRING;
         private String value = "";
         private boolean deleted;
         private Long occurredAt = 0L;

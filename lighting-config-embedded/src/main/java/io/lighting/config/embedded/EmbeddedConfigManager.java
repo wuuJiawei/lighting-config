@@ -84,7 +84,7 @@ public final class EmbeddedConfigManager implements AutoCloseable {
                         .namespace(namespace)
                         .appId(appId)
                         .key(key)
-                        .contentType(ContentType.TEXT)
+                        .contentType(ContentType.STRING)
                         .value("")
                         .version(repository.currentVersion(tenant, namespace, appId, key))
                         .createdAt(Instant.now())

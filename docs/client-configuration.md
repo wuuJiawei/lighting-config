@@ -64,3 +64,37 @@ lighting:
 - `LightingClientProperties` → `@ConfigurationProperties`，由 Spring Boot 注入。
 - `LightingClient` → 需要的参数全部来自上述属性，若要在代码里覆盖，可注入 `LightingClient` 并调用 `client.toBuilder()` 生成新的 `ClientOptions`。
 - 所有注解（`@LightingValue`, `@LightingListener`）依赖 `LightingClient` 是否成功启动；若 `enabled=false`，这些注解将不起作用。
+
+## 5. 值解析与扩展
+
+`@LightingValue` 和 `@LightingProperties` 依赖 `ConfigValueDecoder` SPI 将字符串解析为目标类型。默认情况下系统已经内置：
+
+- Java 基本类型、包装类、`String`、`enum`；
+- `List`/`Map` 以及普通 POJO（依赖 Jackson，需保证配置值是 JSON）；
+- 复杂嵌套结构（例如 `List<Map<String,Object>>`）。
+
+若需要其他格式，可以在应用中声明自定义的 `ConfigValueDecoder` Bean。例如示例工程 `lighting-config-example-client` 使用 Fastjson 自动映射为 `JSONObject`：
+
+```java
+@Configuration
+class FastjsonDecoderConfiguration {
+
+    @Bean
+    ConfigValueDecoder fastjsonValueDecoder() {
+        return new ConfigValueDecoder() {
+            @Override
+            public boolean supports(ContentType contentType, Type targetType) {
+                return targetType instanceof Class<?>
+                        && JSONObject.class.isAssignableFrom((Class<?>) targetType);
+            }
+
+            @Override
+            public Object decode(String rawValue, ContentType contentType, Type targetType) {
+                return rawValue == null ? null : JSONObject.parse(rawValue);
+            }
+        };
+    }
+}
+```
+
+注册完成后，业务即可直接注入 `@LightingValue JSONObject config` 并享受自动刷新。非 Spring 场景也可以通过 `ValueDecoderRegistry.withDefaults(...)` 手动组合解码器。

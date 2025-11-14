@@ -3,6 +3,8 @@ package io.lighting.config.spring.boot.processor;
 import io.lighting.config.client.LightingClient;
 import io.lighting.config.client.cache.ConfigCache;
 import io.lighting.config.core.dto.ConfigChange;
+import io.lighting.config.client.value.ValueDecoderRegistry;
+import io.lighting.config.core.model.ContentType;
 import io.lighting.config.spring.boot.annotation.LightingProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
@@ -12,6 +14,7 @@ import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -20,11 +23,14 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
 
     private final LightingClient client;
     private final ConversionService conversionService;
+    private final ValueDecoderRegistry decoderRegistry;
 
     public LightingPropertiesBeanPostProcessor(LightingClient client,
-                                               ObjectProvider<ConversionService> conversionServiceProvider) {
+                                               ObjectProvider<ConversionService> conversionServiceProvider,
+                                               ValueDecoderRegistry decoderRegistry) {
         this.client = client;
         this.conversionService = conversionServiceProvider.getIfAvailable(DefaultConversionService::new);
+        this.decoderRegistry = decoderRegistry;
     }
 
     @Override
@@ -34,15 +40,15 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             return bean;
         }
         String prefix = normalize(annotation.prefix());
-        Map<String, Field> fieldMapping = bindFields(bean, prefix);
+        Map<String, FieldBinding> fieldMapping = bindFields(bean, prefix);
         if (annotation.autoRefresh() && !fieldMapping.isEmpty()) {
             client.addListener(prefix, change -> refreshField(bean, fieldMapping, change));
         }
         return bean;
     }
 
-    private Map<String, Field> bindFields(Object bean, String prefix) {
-        Map<String, Field> mapping = new HashMap<>();
+    private Map<String, FieldBinding> bindFields(Object bean, String prefix) {
+        Map<String, FieldBinding> mapping = new HashMap<>();
         ReflectionUtils.doWithFields(bean.getClass(), field -> {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                 return;
@@ -50,43 +56,42 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             String key = prefix + fieldToKey(field.getName());
             ReflectionUtils.makeAccessible(field);
             Object currentValue = ReflectionUtils.getField(field, bean);
-            Object resolved = resolveValue(key, field.getType()).orElse(currentValue);
+            FieldBinding binding = new FieldBinding(field, field.getGenericType());
+            Object resolved = resolveValue(key, binding.targetType()).orElse(currentValue);
             if (resolved != null) {
-                ReflectionUtils.setField(field, bean, resolved);
+                ReflectionUtils.setField(binding.field(), bean, resolved);
             }
-            mapping.put(key, field);
+            mapping.put(key, binding);
         });
         return mapping;
     }
 
-    private void refreshField(Object bean, Map<String, Field> mapping, ConfigChange change) {
-        Field field = mapping.get(change.getCoordinate().getKey());
-        if (field == null) {
+    private void refreshField(Object bean, Map<String, FieldBinding> mapping, ConfigChange change) {
+        FieldBinding binding = mapping.get(change.getCoordinate().getKey());
+        if (binding == null) {
             return;
         }
-        Object converted = convert(change.getValue(), field.getType());
-        ReflectionUtils.setField(field, bean, converted);
+        Object converted = convert(change.getValue(), change.getContentType(), binding.targetType());
+        ReflectionUtils.setField(binding.field(), bean, converted);
     }
 
-    private Optional<Object> resolveValue(String key, Class<?> targetType) {
+    private Optional<Object> resolveValue(String key, Type targetType) {
         Optional<ConfigCache.Snapshot> snapshot = client.getSnapshot(key);
         if (snapshot.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(convert(snapshot.get().value(), targetType));
+        ConfigCache.Snapshot cached = snapshot.get();
+        ContentType contentType = ContentType.fromAlias(cached.contentType());
+        return Optional.ofNullable(convert(cached.value(), contentType, targetType));
     }
 
-    private Object convert(String value, Class<?> targetType) {
-        if (targetType == String.class) {
-            return value;
-        }
-        if (value == null) {
-            return null;
-        }
-        if (conversionService.canConvert(String.class, targetType)) {
-            return conversionService.convert(value, targetType);
-        }
-        throw new IllegalStateException("Unsupported type for @LightingProperties binding: " + targetType.getName());
+    private Object convert(String value, ContentType contentType, Type targetType) {
+        return ValueConversionSupport.convert(value,
+                contentType == null ? ContentType.STRING : contentType,
+                targetType,
+                decoderRegistry,
+                conversionService,
+                "@LightingProperties field type=" + targetType.getTypeName() + ", contentType=" + contentType.name());
     }
 
     private String normalize(String prefix) {
@@ -111,5 +116,23 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             result = result.substring(1);
         }
         return result;
+    }
+
+    private static final class FieldBinding {
+        private final Field field;
+        private final Type targetType;
+
+        private FieldBinding(Field field, Type targetType) {
+            this.field = field;
+            this.targetType = targetType;
+        }
+
+        public Field field() {
+            return field;
+        }
+
+        public Type targetType() {
+            return targetType;
+        }
     }
 }

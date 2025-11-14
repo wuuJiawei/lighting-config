@@ -15,14 +15,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useConfigEditorStore } from '@/stores/config-editor'
 import { toast } from 'sonner'
 
-const CONTENT_TYPE_VALUES = ['TEXT', 'JSON', 'YAML', 'PROPERTIES'] as const
+const CONTENT_TYPE_VALUES = [
+  'STRING',
+  'BOOLEAN',
+  'BYTE',
+  'SHORT',
+  'INTEGER',
+  'LONG',
+  'FLOAT',
+  'DOUBLE',
+  'LIST',
+  'MAP',
+] as const
 type ContentTypeValue = (typeof CONTENT_TYPE_VALUES)[number]
 
 const CONTENT_TYPE_OPTIONS: { value: ContentTypeValue; label: string }[] = [
-  { value: 'TEXT', label: '纯文本 (TEXT)' },
-  { value: 'JSON', label: 'JSON' },
-  { value: 'YAML', label: 'YAML' },
-  { value: 'PROPERTIES', label: 'Properties' },
+  { value: 'STRING', label: '字符串 / String' },
+  { value: 'BOOLEAN', label: '布尔型 / boolean' },
+  { value: 'BYTE', label: 'Byte' },
+  { value: 'SHORT', label: 'Short' },
+  { value: 'INTEGER', label: '整数 / Integer' },
+  { value: 'LONG', label: 'Long' },
+  { value: 'FLOAT', label: 'Float' },
+  { value: 'DOUBLE', label: 'Double' },
+  { value: 'LIST', label: '列表 / JSON 数组' },
+  { value: 'MAP', label: 'Map / JSON 对象' },
 ]
 
 const formSchema = z.object({
@@ -44,7 +61,7 @@ const DEFAULT_VALUES: FormValues = {
   appId: 'default',
   key: '',
   value: '',
-  contentType: 'TEXT',
+  contentType: 'STRING',
   labels: '',
   enabled: true,
 }
@@ -76,7 +93,7 @@ export function ConfigEditorPage() {
     if (detailQuery.data) {
       const { tenant, namespace, appId, key, value, contentType, labels, enabled } = detailQuery.data
       setDraft(detailQuery.data)
-      const safeContentType: ContentTypeValue = isContentTypeValue(contentType) ? contentType : 'TEXT'
+      const safeContentType: ContentTypeValue = isContentTypeValue(contentType) ? contentType : 'STRING'
       form.reset({
         tenant,
         namespace,

@@ -9,7 +9,7 @@
 | `namespace` | `VARCHAR(128)` | 必填 | 同一租户下的命名空间（例如 `prod`、`staging`、`finance`）。 |
 | `app_id` | `VARCHAR(128)` | 必填 | 该条配置所属应用或作用域。`__global__` 为保留值，表示所有应用共享。 |
 | `key` | `VARCHAR(512)` | 必填 | 配置键，和 `tenant/namespace/app_id` 组成唯一索引。 |
-| `content_type` | `VARCHAR(32)` | `TEXT` | 值的格式，枚举见下文。控制台和 SDK 会使用它选择合适的编辑器/解析方式。 |
+| `content_type` | `VARCHAR(32)` | `STRING` | 值的数据类型，枚举见下文。控制台和 SDK 会使用它驱动编辑器/自动解析。 |
 | `value` | `TEXT/JSON/CLOB` | 必填 | 实际配置内容，按照 `content_type` 解释。 |
 | `version` | `BIGINT` | 1 | 递增版本号。每次 upsert 自动 +1，客户端用它判断增量。 |
 | `tags` | `JSONB` | `NULL` | `Map<String,String>`，存放标签（例如 `env=prod`、`owner=risk`）。用于筛选、灰度、审计。为空时写入 `NULL`。 |
@@ -21,20 +21,22 @@
 
 ## content_type 枚举
 
-`lighting-config-core` 中的 `ContentType` 定义了受支持的格式：
+`lighting-config-core` 中的 `ContentType` 描述了值的语义类型，而不是纯文本格式。支持以下枚举：
 
-| 枚举常量 | MIME | 典型场景 |
+| 枚举常量 | 说明 | 示例 |
 | --- | --- | --- |
-| `TEXT` | `text/plain` | 默认，简单字符串、数字、URL、JSON 字符串等。 |
-| `JSON` | `application/json` | 需要结构校验或对象序列化的配置。 |
-| `YAML` | `application/x-yaml` | 复杂层级、需要注释的配置文件。 |
-| `PROPERTIES` | `text/x-java-properties` | Spring/Java `*.properties` 格式。 |
+| `STRING` | 任意字符串或多行文本，兼容旧的 `TEXT/YAML/PROPERTIES` 值。 | `jdbc:mysql://…`、YAML 片段 |
+| `BOOLEAN` | 布尔型，客户端会自动解析为 `boolean`/`Boolean`。 | `true`、`false` |
+| `BYTE` / `SHORT` / `INTEGER` / `LONG` | 整型数值，对应 Java 基本数据类型。 | `42`、`1024` |
+| `FLOAT` / `DOUBLE` | 浮点型数值。 | `3.14`、`0.618` |
+| `LIST` | JSON 数组，支持嵌套 `List<Integer>`、`List<Map<String,Object>>` 等。 | `[true,false,true]` |
+| `MAP` | JSON 对象，等价于 `Map<String,Object>`，支持嵌套结构。 | `{"enabled":true,"weight":0.3}` |
 
 解析规则：
 
-1. 控制台依据 `content_type` 展示相应语法高亮、可选的 lint/格式化。
-2. SDK 在 `PollResponse`／`ConfigChange` 中透出 `contentType`，由业务决定如何解析。
-3. 如果写入未知类型，系统会回退到 `TEXT`。
+1. 控制台依据 `content_type` 选择输入组件，例如布尔开关、JSON 编辑器。
+2. SDK 在 `PollResponse`／`ConfigChange` 中透出 `contentType`，并结合 `LightingValue`/`LightingProperties` 的目标类型自动解析成 Java 对象。
+3. 如果写入未知类型，系统会回退到 `STRING`；旧数据中的 `TEXT/JSON/YAML/PROPERTIES` 别名仍然会被接受。
 
 ## tags 使用建议
 

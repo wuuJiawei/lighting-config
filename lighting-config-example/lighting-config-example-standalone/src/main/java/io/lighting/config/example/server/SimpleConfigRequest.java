@@ -18,7 +18,7 @@ public class SimpleConfigRequest {
     private String appId = "demo-server";
     private String key;
     private String value;
-    private String contentType = ContentType.TEXT.name();
+    private String contentType = ContentType.STRING.name();
     private Map<String, String> labels = new LinkedHashMap<>();
     private boolean enabled = true;
 

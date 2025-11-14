@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -52,6 +53,10 @@ class LightingClientAutoConfigurationTest {
     void lightingValueInjectedFromClient() throws InterruptedException {
         assertTrue(waitFor(() -> testBean.featureFlag));
         assertTrue(waitFor(() -> featureProperties.flagEnabled));
+        assertEquals(List.of(10, 20, 30), testBean.thresholds);
+        assertEquals(Boolean.TRUE, testBean.options.get("beta"));
+        assertEquals(List.of("ops", "rd"), featureProperties.owners);
+        assertEquals("blue", featureProperties.metadata.get("tier"));
     }
 
     @Test
@@ -60,7 +65,7 @@ class LightingClientAutoConfigurationTest {
                 .coordinate(ConfigCoordinate.of("default", "default", "default", "feature.mode"))
                 .version(2)
                 .type(ChangeType.UPSERT)
-                .contentType(ContentType.TEXT)
+                .contentType(ContentType.STRING)
                 .value("on")
                 .occurredAt(System.currentTimeMillis())
                 .build();
@@ -71,13 +76,17 @@ class LightingClientAutoConfigurationTest {
     }
 
     private static ConfigItem sampleItem(String key, String value, long version) {
+        return sampleItem(key, value, version, ContentType.STRING);
+    }
+
+    private static ConfigItem sampleItem(String key, String value, long version, ContentType type) {
         return ConfigItem.builder()
                 .tenant("default")
                 .namespace("default")
                 .appId("default")
                 .key(key)
                 .value(value)
-                .contentType(ContentType.TEXT)
+                .contentType(type)
                 .version(version)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -93,8 +102,12 @@ class LightingClientAutoConfigurationTest {
             StubPollingTransport transport = new StubPollingTransport();
             transport.enqueue(List.of(
                     sampleItem("feature.flag", "true", 1),
-                    sampleItem("feature.flagEnabled", "true", 1),
-                    sampleItem("feature.mode", "off", 1)
+                    sampleItem("feature.flag.enabled", "true", 1),
+                    sampleItem("feature.mode", "off", 1),
+                    sampleItem("feature.thresholds", "[10,20,30]", 1, ContentType.LIST),
+                    sampleItem("feature.options", "{\"beta\":true,\"ratio\":0.8}", 1, ContentType.MAP),
+                    sampleItem("feature.owners", "[\"ops\",\"rd\"]", 1, ContentType.LIST),
+                    sampleItem("feature.metadata", "{\"tier\":\"blue\"}", 1, ContentType.MAP)
             ));
             return transport;
         }
@@ -113,6 +126,10 @@ class LightingClientAutoConfigurationTest {
     static class TestBean {
         @LightingValue(key = "feature.flag", defaultValue = "false")
         private boolean featureFlag;
+        @LightingValue(key = "feature.thresholds", defaultValue = "[1,2]")
+        private List<Integer> thresholds;
+        @LightingValue(key = "feature.options", defaultValue = "{\"beta\":false}")
+        private Map<String, Object> options;
 
         private CountDownLatch latch;
 
@@ -133,6 +150,8 @@ class LightingClientAutoConfigurationTest {
     static class FeatureProperties {
         private boolean flagEnabled;
         private String mode;
+        private List<String> owners;
+        private Map<String, Object> metadata;
     }
 
     private boolean waitFor(BooleanSupplier supplier) throws InterruptedException {

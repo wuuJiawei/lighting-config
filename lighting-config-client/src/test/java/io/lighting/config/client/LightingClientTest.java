@@ -96,7 +96,7 @@ class LightingClientTest {
                 .coordinate(ConfigCoordinate.of("tenant", "ns", appId, key))
                 .version(version)
                 .type(ChangeType.UPSERT)
-                .contentType(ContentType.TEXT)
+                .contentType(ContentType.STRING)
                 .value(value)
                 .occurredAt(System.currentTimeMillis())
                 .build();

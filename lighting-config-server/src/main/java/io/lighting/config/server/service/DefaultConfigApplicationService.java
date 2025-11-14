@@ -72,7 +72,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                         .orElse(repository.currentVersion(tenant, namespace, appId, key)))
                 .type(ChangeType.DELETE)
                 .contentType(existing.map(ConfigItem::getContentType)
-                        .orElse(io.lighting.config.core.model.ContentType.TEXT))
+                        .orElse(io.lighting.config.core.model.ContentType.STRING))
                 .deleted(true)
                 .occurredAt(nowMillis())
                 .build();

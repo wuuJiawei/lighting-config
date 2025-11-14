@@ -117,7 +117,7 @@ public final class ConfigItem {
         private String namespace;
         private String appId;
         private String key;
-        private ContentType contentType = ContentType.TEXT;
+        private ContentType contentType = ContentType.STRING;
         private String value = "";
         private long version = 0L;
         private Map<String, String> labels = new LinkedHashMap<>();

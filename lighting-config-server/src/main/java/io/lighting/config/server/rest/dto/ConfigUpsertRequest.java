@@ -20,7 +20,7 @@ public class ConfigUpsertRequest {
     private String key;
     @NotBlank
     private String value;
-    private String contentType = ContentType.TEXT.name();
+    private String contentType = ContentType.STRING.name();
     private Map<String, String> labels = new LinkedHashMap<>();
     private boolean enabled = true;
 

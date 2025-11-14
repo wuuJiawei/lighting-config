@@ -1,5 +1,6 @@
 package io.lighting.config.example.client;
 
+import com.alibaba.fastjson2.JSONObject;
 import io.lighting.config.spring.boot.annotation.LightingListener;
 import io.lighting.config.spring.boot.annotation.LightingValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,11 +14,19 @@ public class FeatureToggleController {
     @LightingValue(key = "feature.order.v2", defaultValue = "false")
     private boolean orderV2;
 
+    @LightingValue(key = "feature.json.config", defaultValue = "{\"enabled\":false}")
+    private JSONObject jsonConfig;
+
     private final AtomicReference<String> lastEvent = new AtomicReference<>("none");
 
     @GetMapping("/feature/order")
     public String orderFlag() {
         return Boolean.toString(orderV2);
+    }
+
+    @GetMapping("/feature/json-config")
+    public JSONObject jsonFeatureConfig() {
+        return jsonConfig;
     }
 
     @LightingListener(prefix = "feature.")
