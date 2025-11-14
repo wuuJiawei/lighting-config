@@ -30,6 +30,18 @@ CREATE TABLE IF NOT EXISTS revision (
 
 CREATE INDEX IF NOT EXISTS idx_revision_lookup ON revision (tenant, namespace, app_id, key);
 
+CREATE TABLE IF NOT EXISTS cache_miss_alert (
+    id BIGSERIAL PRIMARY KEY,
+    tenant VARCHAR(64) NOT NULL,
+    namespace VARCHAR(128) NOT NULL,
+    app_id VARCHAR(128) NOT NULL,
+    selector VARCHAR(512) NOT NULL,
+    miss_count BIGINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cache_miss_tenant ON cache_miss_alert (tenant, created_at DESC);
+
 -- Sample seed data for demos
 INSERT INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
 VALUES

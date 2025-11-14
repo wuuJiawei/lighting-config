@@ -8,6 +8,7 @@ import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.server.cache.ClientSnapshotService;
 import io.lighting.config.server.notify.ChangeFeed;
 import io.lighting.config.server.notify.NotifyEngine;
 
@@ -20,15 +21,18 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
     private final NotifyEngine notifyEngine;
     private final ChangeFeed changeFeed;
     private final TimeProvider timeProvider;
+    private final ClientSnapshotService clientSnapshotService;
 
     public DefaultConfigApplicationService(ConfigRepository repository,
                                            NotifyEngine notifyEngine,
                                            ChangeFeed changeFeed,
-                                           TimeProvider timeProvider) {
+                                           TimeProvider timeProvider,
+                                           ClientSnapshotService clientSnapshotService) {
         this.repository = repository;
         this.notifyEngine = notifyEngine;
         this.changeFeed = changeFeed;
         this.timeProvider = timeProvider;
+        this.clientSnapshotService = clientSnapshotService;
     }
 
     @Override
@@ -73,6 +77,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .occurredAt(nowMillis())
                 .build();
         publish(change, operator);
+        clientSnapshotService.invalidate(coordinate);
     }
 
     private void publishChange(ConfigItem item, ChangeType type, String operator) {
@@ -85,6 +90,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .occurredAt(nowMillis())
                 .build();
         publish(change, operator);
+        clientSnapshotService.invalidate(coordinateOf(item));
     }
 
     private void publish(ConfigChange change, String operator) {

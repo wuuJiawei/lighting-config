@@ -1,4 +1,5 @@
 import { apiClient, withApiFallback } from './client'
+import { ADMIN_CONSOLE_AUDIT } from './routes'
 import { mockAuditTrail } from './mocks'
 import type { AuditRecord } from './types'
 
@@ -15,7 +16,7 @@ export async function fetchAuditTrail(params: AuditQuery = {}): Promise<AuditRec
 
   return withApiFallback(
     async () => {
-      const { data } = await apiClient.get<AuditRecord[]>('/console/audit', { params: query })
+      const { data } = await apiClient.get<AuditRecord[]>(ADMIN_CONSOLE_AUDIT, { params: query })
       return data
     },
     mockAuditTrail,

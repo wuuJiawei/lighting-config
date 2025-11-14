@@ -8,9 +8,15 @@ import { useNavigate } from 'react-router-dom'
 interface ConfigTableProps {
   items: ConfigItem[]
   isLoading?: boolean
+  listState?: {
+    from: {
+      pathname: string
+      search?: string
+    }
+  }
 }
 
-export function ConfigTable({ items, isLoading }: ConfigTableProps) {
+export function ConfigTable({ items, isLoading, listState }: ConfigTableProps) {
   const navigate = useNavigate()
   const skeletonRows = Array.from({ length: 5 }, (_, index) => index)
 
@@ -63,7 +69,11 @@ export function ConfigTable({ items, isLoading }: ConfigTableProps) {
                 <TableCell>v{row.version}</TableCell>
                 <TableCell>{formatDateTime(row.updatedAt)}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm" variant="ghost" onClick={() => void navigate(`/configs/${row.id}`)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void navigate(`/configs/${row.id}`, { state: listState })}
+                  >
                     编辑
                   </Button>
                 </TableCell>

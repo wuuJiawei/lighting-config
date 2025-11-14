@@ -2,7 +2,8 @@ import type { NamespaceSummary } from '@/api/types'
 import type { ConfigFilters } from '@/hooks/useConfigFilters'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/cn'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface ConfigFilterBarProps {
   filters: ConfigFilters
@@ -11,87 +12,119 @@ interface ConfigFilterBarProps {
   isLoading?: boolean
 }
 
+const FALLBACK_NAMESPACE: NamespaceSummary = {
+  id: 'default',
+  name: 'default',
+  owner: '-',
+  configCount: 0,
+  watchers: 0,
+  appIds: ['default'],
+  updatedAt: new Date().toISOString(),
+}
+
 export function ConfigFilterBar({ filters, namespaces, onChange, isLoading }: ConfigFilterBarProps) {
-  const handleInput = (key: keyof ConfigFilters, value: string) => {
-    onChange({ ...filters, [key]: value })
+  const availableNamespaces = namespaces.length ? namespaces : [FALLBACK_NAMESPACE]
+  const namespaceValue =
+    filters.namespace && availableNamespaces.some((item) => item.name === filters.namespace)
+      ? filters.namespace
+      : availableNamespaces[0]?.name ?? FALLBACK_NAMESPACE.name
+  const selectedNamespace =
+    availableNamespaces.find((item) => item.name === namespaceValue) ?? availableNamespaces[0] ?? FALLBACK_NAMESPACE
+  const appOptions = selectedNamespace.appIds.length ? selectedNamespace.appIds : ['default']
+  const appValue = appOptions.includes(filters.appId ?? '') ? filters.appId ?? appOptions[0] : appOptions[0]
+
+  const handleKeywordChange = (value: string) => {
+    onChange({ ...filters, keyword: value })
   }
 
-  const availableNamespaces = namespaces.length
-    ? namespaces
-    : [{ id: 'default', name: 'default', owner: '-', configCount: 0, watchers: 0, appIds: ['default'], updatedAt: new Date().toISOString() }]
-  const selectedNamespace = availableNamespaces.find((item) => item.name === filters.namespace) ?? availableNamespaces[0]
-  const appOptions = selectedNamespace.appIds.length ? selectedNamespace.appIds : ['default']
+  const handleNamespaceChange = (value: string) => {
+    const namespace = availableNamespaces.find((item) => item.name === value) ?? availableNamespaces[0] ?? FALLBACK_NAMESPACE
+    const nextApp = namespace.appIds[0] ?? 'default'
+    onChange({
+      ...filters,
+      namespace: namespace.name,
+      appId: nextApp,
+    })
+  }
 
-  const resetFilters = () =>
+  const handleAppChange = (value: string) => {
+    onChange({ ...filters, appId: value })
+  }
+
+  const handleTenantChange = (value: string) => {
+    onChange({ ...filters, tenant: value })
+  }
+
+  const resetFilters = () => {
+    const firstNamespace = availableNamespaces[0] ?? FALLBACK_NAMESPACE
     onChange({
       tenant: 'default',
-      namespace: availableNamespaces[0]?.name ?? 'default',
-      appId: appOptions[0] ?? 'default',
+      namespace: firstNamespace.name,
+      appId: firstNamespace.appIds[0] ?? 'default',
       keyword: '',
     })
+  }
 
   return (
     <div className="grid gap-4 rounded-xl border bg-card/60 p-4 md:grid-cols-4">
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground" htmlFor="keyword">
+        <Label className="text-xs text-muted-foreground" htmlFor="keyword">
           搜索
-        </label>
+        </Label>
         <Input
           id="keyword"
           placeholder="按 key / 描述过滤"
           value={filters.keyword ?? ''}
-          onChange={(event) => handleInput('keyword', event.target.value)}
+          onChange={(event) => handleKeywordChange(event.target.value)}
         />
       </div>
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground" htmlFor="namespace">
+        <Label className="text-xs text-muted-foreground" htmlFor="namespace">
           命名空间
-        </label>
-        <select
-          id="namespace"
-          className={cn(
-            'h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          )}
-          value={filters.namespace ?? selectedNamespace.name}
-          onChange={(event) => handleInput('namespace', event.target.value)}
-        >
-          {availableNamespaces.map((ns) => (
-            <option key={ns.id} value={ns.name}>
-              {ns.name}
-            </option>
-          ))}
-        </select>
+        </Label>
+        <Select value={namespaceValue} onValueChange={handleNamespaceChange} disabled={isLoading}>
+          <SelectTrigger id="namespace">
+            <SelectValue placeholder="选择命名空间" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableNamespaces.map((ns) => (
+              <SelectItem key={ns.id} value={ns.name}>
+                {ns.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground" htmlFor="appId">
+        <Label className="text-xs text-muted-foreground" htmlFor="appId">
           App ID
-        </label>
-        <select
-          id="appId"
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          value={filters.appId ?? appOptions[0]}
-          onChange={(event) => handleInput('appId', event.target.value)}
-        >
-          {appOptions.map((app) => (
-            <option key={app} value={app}>
-              {app}
-            </option>
-          ))}
-        </select>
+        </Label>
+        <Select value={appValue} onValueChange={handleAppChange} disabled={isLoading}>
+          <SelectTrigger id="appId">
+            <SelectValue placeholder="选择 App ID" />
+          </SelectTrigger>
+          <SelectContent>
+            {appOptions.map((app) => (
+              <SelectItem key={app} value={app}>
+                {app}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-2">
-        <label className="text-xs text-muted-foreground" htmlFor="tenant">
+        <Label className="text-xs text-muted-foreground" htmlFor="tenant">
           租户
-        </label>
+        </Label>
         <div className="flex gap-2">
-          <select
-            id="tenant"
-            className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={filters.tenant ?? 'default'}
-            onChange={(event) => handleInput('tenant', event.target.value)}
-          >
-            <option value="default">default</option>
-          </select>
+          <Select value={filters.tenant ?? 'default'} onValueChange={handleTenantChange} disabled={isLoading}>
+            <SelectTrigger id="tenant" className="flex-1">
+              <SelectValue placeholder="选择租户" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">default</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="ghost" onClick={resetFilters} disabled={isLoading}>
             重置
           </Button>

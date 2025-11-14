@@ -1,5 +1,6 @@
 import type {
   AuditRecord,
+  CacheMissAlert,
   ConfigItem,
   ConfigListResponse,
   DashboardStat,
@@ -102,4 +103,23 @@ export const mockDashboardStats: DashboardStat[] = [
   { label: '拉取请求', value: '18.2k', change: 2.1, trend: 'up', hint: '过去 60 分钟' },
   { label: '灰度实例', value: '42', change: -1.2, trend: 'down', hint: '进行中灰度' },
   { label: '失败推送', value: '3', change: -66.0, trend: 'down', hint: '事件中心' },
+]
+
+export const mockCacheMissAlerts: CacheMissAlert[] = [
+  {
+    id: 'miss-01',
+    namespace: 'prod',
+    appId: 'order-service',
+    selector: 'datasource.',
+    missCount: 7,
+    occurredAt: new Date().toISOString(),
+  },
+  {
+    id: 'miss-02',
+    namespace: 'prod',
+    appId: 'inventory-service',
+    selector: '*',
+    missCount: 5,
+    occurredAt: new Date(Date.now() - 9_000_00).toISOString(),
+  },
 ]

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, type SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
@@ -11,8 +11,19 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfigEditorStore } from '@/stores/config-editor'
 import { toast } from 'sonner'
+
+const CONTENT_TYPE_VALUES = ['TEXT', 'JSON', 'YAML', 'PROPERTIES'] as const
+type ContentTypeValue = (typeof CONTENT_TYPE_VALUES)[number]
+
+const CONTENT_TYPE_OPTIONS: { value: ContentTypeValue; label: string }[] = [
+  { value: 'TEXT', label: '纯文本 (TEXT)' },
+  { value: 'JSON', label: 'JSON' },
+  { value: 'YAML', label: 'YAML' },
+  { value: 'PROPERTIES', label: 'Properties' },
+]
 
 const formSchema = z.object({
   tenant: z.string().min(1, '租户必填'),
@@ -20,7 +31,7 @@ const formSchema = z.object({
   appId: z.string().min(1, 'App ID 必填'),
   key: z.string().min(1, 'Key 必填'),
   value: z.string().min(1, '配置内容不能为空'),
-  contentType: z.enum(['TEXT', 'JSON', 'YAML']),
+  contentType: z.enum(CONTENT_TYPE_VALUES),
   labels: z.string().optional(),
   enabled: z.boolean(),
 })
@@ -43,6 +54,8 @@ export function ConfigEditorPage() {
   const configId = params.configId
   const isNew = !configId || configId === 'new'
   const navigate = useNavigate()
+  const location = useLocation<{ from?: { pathname: string; search?: string } }>()
+  const returnTo = location.state?.from ?? { pathname: '/configs', search: '' }
   const { draft, setDraft, updateContent } = useConfigEditorStore()
 
   const form = useForm<FormValues>({
@@ -51,6 +64,7 @@ export function ConfigEditorPage() {
   })
 
   const enabledValue = form.watch('enabled')
+  const contentTypeValue = form.watch('contentType')
 
   const detailQuery = useQuery({
     queryKey: ['config', configId],
@@ -62,9 +76,7 @@ export function ConfigEditorPage() {
     if (detailQuery.data) {
       const { tenant, namespace, appId, key, value, contentType, labels, enabled } = detailQuery.data
       setDraft(detailQuery.data)
-      const safeContentType: FormValues['contentType'] = ['TEXT', 'JSON', 'YAML'].includes(contentType)
-        ? (contentType as FormValues['contentType'])
-        : 'TEXT'
+      const safeContentType: ContentTypeValue = isContentTypeValue(contentType) ? contentType : 'TEXT'
       form.reset({
         tenant,
         namespace,
@@ -100,7 +112,7 @@ export function ConfigEditorPage() {
     onSuccess: (result) => {
       toast.success('配置已保存')
       setDraft(result)
-      void navigate(`/configs/${result.id}`)
+      void navigate(`/configs/${result.id}`, { replace: true, state: location.state })
     },
   })
 
@@ -112,7 +124,15 @@ export function ConfigEditorPage() {
         title={isNew ? '新建配置' : `编辑配置 · ${draft?.key ?? configId}`}
         description={isNew ? '按照租户 / 命名空间 / App ID 填充配置内容。' : '在保存前确认启用状态与内容格式。'}
         actions={
-          <Button variant="secondary" onClick={() => void navigate('/configs')}>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              void navigate({
+                pathname: returnTo.pathname,
+                search: returnTo.search ?? '',
+              })
+            }
+          >
             返回列表
           </Button>
         }
@@ -143,14 +163,21 @@ export function ConfigEditorPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="格式">
-                <select
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                  {...form.register('contentType')}
+                <Select
+                  value={contentTypeValue}
+                  onValueChange={(value: ContentTypeValue) => form.setValue('contentType', value)}
                 >
-                  <option value="TEXT">Properties</option>
-                  <option value="JSON">JSON</option>
-                  <option value="YAML">YAML</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择格式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTENT_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field label="标签">
                 <Input {...form.register('labels')} placeholder="用逗号分隔，例如 push,gray" />
@@ -234,4 +261,11 @@ function toLabelMap(source?: string): Record<string, string> {
       map[key] = 'true'
     })
   return map
+}
+
+function isContentTypeValue(value?: string): value is ContentTypeValue {
+  if (!value) {
+    return false
+  }
+  return CONTENT_TYPE_VALUES.includes(value as ContentTypeValue)
 }

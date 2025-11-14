@@ -3,6 +3,8 @@ package io.lighting.config.server.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.server.monitoring.CacheMissAlertRepository;
+import io.lighting.config.server.monitoring.JdbcCacheMissAlertRepository;
 import io.lighting.config.server.repository.JdbcConfigRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -41,5 +43,11 @@ public class DatabaseConfiguration {
                                                  ObjectMapper objectMapper,
                                                  TimeProvider timeProvider) {
         return new JdbcConfigRepository(jdbcTemplate, objectMapper, timeProvider);
+    }
+
+    @Bean
+    @ConditionalOnBean(NamedParameterJdbcTemplate.class)
+    public CacheMissAlertRepository cacheMissAlertJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        return new JdbcCacheMissAlertRepository(jdbcTemplate);
     }
 }

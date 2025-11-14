@@ -15,6 +15,8 @@ lighting:
       type: jdbc
       settings:
         schema: lighting_config     # 可选，自定义 schema 或表前缀
+    monitoring:
+      cache-miss-threshold: 5        # CacheMissTracker 阈值
     auth:
       enabled: true
       mode: token
@@ -37,6 +39,7 @@ spring:
 | `lighting.config.server` | 见下节 | 控制 server 监听端口与优雅停机。 |
 | `lighting.config.storage` | 见下节 | 数据持久化方案（默认 JDBC）。 |
 | `lighting.config.auth` | 见下节 | 鉴权配置（默认启用简单 token 模式）。 |
+| `lighting.config.monitoring` | 见下节 | 观测 & 告警相关参数（如缓存穿透告警阈值）。 |
 
 ## 3. `server.*`
 
@@ -56,16 +59,22 @@ spring:
 
 > 当 `type=jdbc` 时，需要提供标准的 `spring.datasource.*` 属性或自定义 `DataSource` Bean。Flyway/DDL 见 `docs/schema/`。
 
-## 5. 本地缓存（Caffeine）
+## 5. 客户端轮询缓存 & 告警
 
-lighting-config-server 内置基于 Caffeine 的读缓存，对 `config_item` 的单点读取与前缀列表做缓存，典型策略如下：
+`ClientSnapshotService` 负责 `/lighting-config/api/poll` 的快照输出，核心策略：
 
-- 最近 50k 个单键读取缓存 5 分钟；
-- 最近 5k 个 `(tenant, namespace, appId, prefix)` 查询缓存 2 分钟；
-- `upsert`/`delete` 会立即失效对应条目及相关前缀，确保一致性；
-- 若缓存 miss，则回退到数据库。
+- 按 `(tenant, namespace, appId, prefix)` 维度缓存 Caffeine 条目 3 分钟；
+- Poll 线程命中缓存即可直接返回，未命中时再访问 JDBC 仓储并立刻回填缓存；
+- 控制台/Admin API 依旧直接访问数据库，写操作完成后会失效相应缓存键；
+- 如果某个键在短时间内持续多次（默认 5 次，可通过 `lighting.config.monitoring.cache-miss-threshold` 调整）未命中缓存，会在 `cache_miss_alert` 表写入一条记录，可通过 `/lighting-config/api/admin/console/cache-miss` 查询并在控制台展示。
 
-该机制完全内置，无需额外配置或 Redis 依赖，可在内存受控的同时降低数据库压力。
+该机制完全内置，无需额外配置，能够明确区分“控制台 → DB”与“客户端轮询 → 缓存优先”两条路径，同时将异常回源透明化。
+
+## 6. `monitoring.*`
+
+| 属性 | 类型 / 默认值 | 说明 |
+| --- | --- | --- |
+| `lighting.config.monitoring.cache-miss-threshold` | `int`，`5` | 当同一 `(tenant, namespace, appId, prefix)` 在短时间内连续回源达到该次数，会生成一条 `cache_miss_alert` 记录。最小值 1。 |
 
 ## 6. `auth.*`
 

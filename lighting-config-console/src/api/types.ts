@@ -58,3 +58,12 @@ export interface DashboardStat {
   trend: 'up' | 'down'
   hint?: string
 }
+
+export interface CacheMissAlert {
+  id?: string
+  namespace: string
+  appId: string
+  selector: string
+  missCount: number
+  occurredAt: string
+}

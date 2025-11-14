@@ -11,6 +11,7 @@ public class LightingServerProperties {
     private Mode mode = Mode.STANDALONE;
     private final Storage storage = new Storage();
     private final Auth auth = new Auth();
+    private final Monitoring monitoring = new Monitoring();
 
     public Mode getMode() {
         return mode;
@@ -26,6 +27,10 @@ public class LightingServerProperties {
 
     public Auth getAuth() {
         return auth;
+    }
+
+    public Monitoring getMonitoring() {
+        return monitoring;
     }
 
     public enum Mode {
@@ -73,6 +78,18 @@ public class LightingServerProperties {
 
         public Map<String, String> getOptions() {
             return options;
+        }
+    }
+
+    public static class Monitoring {
+        private int cacheMissThreshold = 5;
+
+        public int getCacheMissThreshold() {
+            return cacheMissThreshold;
+        }
+
+        public void setCacheMissThreshold(int cacheMissThreshold) {
+            this.cacheMissThreshold = cacheMissThreshold;
         }
     }
 }

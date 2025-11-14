@@ -1,6 +1,8 @@
 package io.lighting.config.server.service;
 
 import io.lighting.config.server.rest.dto.AuditRecordResponse;
+import io.lighting.config.server.monitoring.CacheMissAlertRepository;
+import io.lighting.config.server.rest.dto.CacheMissAlertResponse;
 import io.lighting.config.server.rest.dto.DashboardStatView;
 import io.lighting.config.server.rest.dto.NamespaceSummaryResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnBean(DataSource.class)
@@ -36,9 +39,12 @@ public class ConsoleQueryService {
             + "FROM config_item WHERE tenant = :tenant ORDER BY updated_at DESC LIMIT :limit";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final CacheMissAlertRepository cacheMissAlertRepository;
 
-    public ConsoleQueryService(NamedParameterJdbcTemplate jdbcTemplate) {
+    public ConsoleQueryService(NamedParameterJdbcTemplate jdbcTemplate,
+                               CacheMissAlertRepository cacheMissAlertRepository) {
         this.jdbcTemplate = jdbcTemplate;
+        this.cacheMissAlertRepository = cacheMissAlertRepository;
     }
 
     public List<DashboardStatView> fetchDashboardStats(String tenant) {
@@ -110,6 +116,13 @@ public class ConsoleQueryService {
             return new AuditRecordResponse(id, namespace, appId, key, "system", action, message,
                     updatedAt == null ? Instant.now() : updatedAt.toInstant());
         });
+    }
+
+    public List<CacheMissAlertResponse> fetchCacheMissAlerts(String tenant, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        return cacheMissAlertRepository.findRecent(tenant, safeLimit).stream()
+                .map(CacheMissAlertResponse::new)
+                .collect(Collectors.toList());
     }
 
     private Instant latest(Instant current, Instant next) {

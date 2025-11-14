@@ -23,7 +23,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@ConditionalOnClass(io.lighting.config.server.rest.ConfigController.class)
+@ConditionalOnClass(io.lighting.config.server.rest.ConsoleConfigController.class)
 @ConditionalOnProperty(prefix = "lighting.config", name = "mode", havingValue = "embedded")
 @EnableConfigurationProperties({LightingEmbeddedProperties.class, LightingServerProperties.class})
 @ComponentScan(basePackages = "io.lighting.config.server.rest")

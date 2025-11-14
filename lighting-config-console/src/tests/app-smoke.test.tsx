@@ -9,6 +9,7 @@ const queryClient = new QueryClient()
 vi.mock('@/api/dashboard', () => ({
   fetchDashboardStats: () => Promise.resolve([]),
   fetchRecentAudits: () => Promise.resolve([]),
+  fetchCacheMissAlerts: () => Promise.resolve([]),
 }))
 
 vi.mock('@/api/config', () => ({

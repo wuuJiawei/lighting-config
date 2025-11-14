@@ -1,4 +1,5 @@
 import { apiClient, withApiFallback } from './client'
+import { ADMIN_CONFIG_ENDPOINT } from './routes'
 import { mockConfigList, mockConfigs } from './mocks'
 import type { ConfigItem, ConfigListResponse, ConfigUpsertPayload } from './types'
 import { decodeConfigId, deriveConfigId } from '@/utils/config-id'
@@ -42,7 +43,7 @@ export async function fetchConfigList(params: ConfigQueryParams = {}): Promise<C
 
   return withApiFallback(
     async () => {
-      const { data } = await apiClient.get<ServerConfigResponse[]>('/config', { params: query })
+      const { data } = await apiClient.get<ServerConfigResponse[]>(ADMIN_CONFIG_ENDPOINT, { params: query })
       return {
         items: data.map(mapConfigResponse),
         total: data.length,
@@ -57,7 +58,7 @@ export async function fetchConfigDetail(configId: string): Promise<ConfigItem> {
   const coordinate = decodeConfigId(configId)
   return withApiFallback(
     async () => {
-      const { data } = await apiClient.get<ServerConfigResponse[]>('/config', {
+      const { data } = await apiClient.get<ServerConfigResponse[]>(ADMIN_CONFIG_ENDPOINT, {
         params: {
           tenant: coordinate.tenant,
           namespace: coordinate.namespace,
@@ -79,7 +80,7 @@ export async function fetchConfigDetail(configId: string): Promise<ConfigItem> {
 export async function upsertConfig(payload: ConfigUpsertPayload): Promise<ConfigItem> {
   return withApiFallback(
     async () => {
-      const { data } = await apiClient.post<ServerConfigResponse>('/config', payload)
+      const { data } = await apiClient.post<ServerConfigResponse>(ADMIN_CONFIG_ENDPOINT, payload)
       return mapConfigResponse(data)
     },
     mapConfigResponse({

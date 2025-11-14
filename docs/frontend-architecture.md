@@ -2,7 +2,7 @@
 
 ## 1. 目标
 - 为 `lighting-config-server` 提供基础 Web 控制台：配置 CRUD、监听状态、命名空间/租户管理、推送日志可视化。
-- 与后端 REST API (`/api/config`, `/api/gray`, `/api/poll`, `/actuator`) 对齐，后续可扩展到 WebSocket/SSE。
+- 与后端 REST API (`/api/admin/config`, `/api/admin/console/cache-miss`, `/api/gray`, `/api/poll`, `/actuator`) 对齐，后续可扩展到 WebSocket/SSE。
 - 设计可渐进增强的项目骨架，方便后续 Agent/Contributor 直接补充页面。
 
 ## 2. 技术栈
@@ -36,7 +36,7 @@ lighting-config-console/
 │   │   └── shared/             # 复合组件（表格、搜索栏、EmptyState 等）
 │   ├── api/
 │   │   ├── client.ts           # axios 封装 + 拦截器
-│   │   └── config.ts           # `/api/config` 请求封装
+│   │   └── config.ts           # `/api/admin/config` 请求封装
 │   ├── hooks/                  # useConfigList/useTenantSelect/usePollingSwitch 等
 │   ├── stores/                 # Zustand slices（layout、config-editor 等）
 │   ├── utils/

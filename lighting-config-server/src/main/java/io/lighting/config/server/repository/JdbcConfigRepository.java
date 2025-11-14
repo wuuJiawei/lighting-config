@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.util.Collections;
@@ -97,8 +98,8 @@ public class JdbcConfigRepository implements ConfigRepository {
                 .addValue("version", version)
                 .addValue("tags", serializeTags(item.getLabels()))
                 .addValue("enabled", item.isEnabled())
-                .addValue("createdAt", createdAt)
-                .addValue("updatedAt", updatedAt);
+                .addValue("createdAt", Timestamp.from(createdAt))
+                .addValue("updatedAt", Timestamp.from(updatedAt));
     }
 
     private String serializeTags(Map<String, String> labels) {

@@ -23,14 +23,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/lighting-config/api/config")
+@RequestMapping("/lighting-config/api/admin/config")
 @Validated
-public class ConfigController {
+public class ConsoleConfigController {
 
     private final ConfigApplicationService applicationService;
     private final TimeProvider timeProvider;
 
-    public ConfigController(ConfigApplicationService applicationService, TimeProvider timeProvider) {
+    public ConsoleConfigController(ConfigApplicationService applicationService, TimeProvider timeProvider) {
         this.applicationService = applicationService;
         this.timeProvider = timeProvider;
     }

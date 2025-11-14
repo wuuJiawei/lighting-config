@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchDashboardStats, fetchRecentAudits } from '@/api/dashboard'
+import { fetchCacheMissAlerts, fetchDashboardStats, fetchRecentAudits } from '@/api/dashboard'
 import { fetchConfigList } from '@/api/config'
-import type { AuditRecord, ConfigListResponse, DashboardStat } from '@/api/types'
+import type { AuditRecord, CacheMissAlert, ConfigListResponse, DashboardStat } from '@/api/types'
 import { PageHeader } from '@/components/shared/page-header'
 import { StatCard } from '@/components/shared/stat-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AuditTimeline } from '@/components/shared/audit-timeline'
+import { CacheMissAlertList } from '@/components/shared/cache-miss-alerts'
 import { formatRelative } from '@/utils/date'
 
 export function DashboardPage() {
@@ -23,6 +24,12 @@ export function DashboardPage() {
   const { data: configs } = useQuery<ConfigListResponse>({
     queryKey: ['dashboard', 'configs'],
     queryFn: () => fetchConfigList(),
+  })
+
+  const { data: cacheMissAlerts = [] } = useQuery<CacheMissAlert[]>({
+    queryKey: ['dashboard', 'cache-miss'],
+    queryFn: () => fetchCacheMissAlerts(6),
+    refetchInterval: 60_000,
   })
 
   const recentConfigs = configs?.items?.slice(0, 5) ?? []
@@ -78,6 +85,16 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>缓存回源热点</CardTitle>
+          <CardDescription>用于识别客户端轮询频繁穿透数据库的场景</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CacheMissAlertList alerts={cacheMissAlerts} />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -29,6 +29,17 @@ CREATE TABLE IF NOT EXISTS revision (
     INDEX idx_revision_lookup (tenant, namespace, app_id, `key`)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS cache_miss_alert (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tenant VARCHAR(64) NOT NULL,
+    namespace VARCHAR(128) NOT NULL,
+    app_id VARCHAR(128) NOT NULL,
+    selector VARCHAR(512) NOT NULL,
+    miss_count BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_cache_miss_tenant (tenant, created_at)
+) ENGINE=InnoDB;
+
 -- Sample seed data for demos
 INSERT INTO config_item (tenant, namespace, app_id, `key`, content_type, value, version, tags, enabled)
 VALUES
