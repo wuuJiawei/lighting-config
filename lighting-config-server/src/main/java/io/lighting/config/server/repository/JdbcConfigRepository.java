@@ -96,7 +96,7 @@ public class JdbcConfigRepository implements ConfigRepository {
                 .addValue("contentType", item.getContentType().name())
                 .addValue("value", item.getValue())
                 .addValue("version", version)
-                .addValue("tags", serializeTags(item.getLabels()))
+                .addValue("tags", serializeTags(item.getLabels()), Types.OTHER)
                 .addValue("enabled", item.isEnabled())
                 .addValue("createdAt", Timestamp.from(createdAt))
                 .addValue("updatedAt", Timestamp.from(updatedAt));

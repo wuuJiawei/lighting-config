@@ -49,7 +49,6 @@ const formSchema = z.object({
   key: z.string().min(1, 'Key 必填'),
   value: z.string().min(1, '配置内容不能为空'),
   contentType: z.enum(CONTENT_TYPE_VALUES),
-  labels: z.string().optional(),
   enabled: z.boolean(),
 })
 
@@ -62,7 +61,6 @@ const DEFAULT_VALUES: FormValues = {
   key: '',
   value: '',
   contentType: 'STRING',
-  labels: '',
   enabled: true,
 }
 
@@ -91,7 +89,7 @@ export function ConfigEditorPage() {
 
   useEffect(() => {
     if (detailQuery.data) {
-      const { tenant, namespace, appId, key, value, contentType, labels, enabled } = detailQuery.data
+      const { tenant, namespace, appId, key, value, contentType, enabled } = detailQuery.data
       setDraft(detailQuery.data)
       const safeContentType: ContentTypeValue = isContentTypeValue(contentType) ? contentType : 'STRING'
       form.reset({
@@ -101,9 +99,6 @@ export function ConfigEditorPage() {
         key,
         value: value ?? '',
         contentType: safeContentType,
-        labels: Object.keys(labels ?? {})
-          .map((label) => label)
-          .join(','),
         enabled,
       })
     } else if (isNew) {
@@ -123,7 +118,7 @@ export function ConfigEditorPage() {
         key: values.key,
         value: values.value,
         contentType: values.contentType,
-        labels: toLabelMap(values.labels),
+        labels: draft?.labels ?? {},
         enabled: values.enabled,
       }),
     onSuccess: (result) => {
@@ -196,9 +191,6 @@ export function ConfigEditorPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="标签">
-                <Input {...form.register('labels')} placeholder="用逗号分隔，例如 push,gray" />
-              </Field>
             </div>
           </CardContent>
         </Card>
@@ -263,21 +255,6 @@ function Field({ label, children, error }: FieldProps) {
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   )
-}
-
-function toLabelMap(source?: string): Record<string, string> {
-  if (!source) {
-    return {}
-  }
-  const map: Record<string, string> = {}
-  source
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .forEach((key) => {
-      map[key] = 'true'
-    })
-  return map
 }
 
 function isContentTypeValue(value?: string): value is ContentTypeValue {
