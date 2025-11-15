@@ -1,56 +1,41 @@
 import { useEffect, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useForm, type SubmitHandler } from 'react-hook-form'
+import { useForm, useWatch, type SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { fetchConfigDetail, upsertConfig } from '@/api/config'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfigEditorStore } from '@/stores/config-editor'
 import { toast } from 'sonner'
+import { ValueEditor } from './value-editor'
+import { CONTENT_TYPE_OPTIONS, CONTENT_TYPE_VALUES, type ContentTypeValue } from './content-types'
 
-const CONTENT_TYPE_VALUES = [
-  'STRING',
-  'BOOLEAN',
-  'BYTE',
-  'SHORT',
-  'INTEGER',
-  'LONG',
-  'FLOAT',
-  'DOUBLE',
-  'LIST',
-  'MAP',
-] as const
-type ContentTypeValue = (typeof CONTENT_TYPE_VALUES)[number]
-
-const CONTENT_TYPE_OPTIONS: { value: ContentTypeValue; label: string }[] = [
-  { value: 'STRING', label: '字符串 / String' },
-  { value: 'BOOLEAN', label: '布尔型 / boolean' },
-  { value: 'BYTE', label: 'Byte' },
-  { value: 'SHORT', label: 'Short' },
-  { value: 'INTEGER', label: '整数 / Integer' },
-  { value: 'LONG', label: 'Long' },
-  { value: 'FLOAT', label: 'Float' },
-  { value: 'DOUBLE', label: 'Double' },
-  { value: 'LIST', label: '列表 / JSON 数组' },
-  { value: 'MAP', label: 'Map / JSON 对象' },
-]
-
-const formSchema = z.object({
-  tenant: z.string().min(1, '租户必填'),
-  namespace: z.string().min(1, '命名空间必填'),
-  appId: z.string().min(1, 'App ID 必填'),
-  key: z.string().min(1, 'Key 必填'),
-  value: z.string().min(1, '配置内容不能为空'),
-  contentType: z.enum(CONTENT_TYPE_VALUES),
-  enabled: z.boolean(),
-})
+const formSchema = z
+  .object({
+    tenant: z.string().min(1, '租户必填'),
+    namespace: z.string().min(1, '命名空间必填'),
+    appId: z.string().min(1, 'App ID 必填'),
+    key: z.string().min(1, 'Key 必填'),
+    value: z.string().min(1, '配置内容不能为空'),
+    contentType: z.enum(CONTENT_TYPE_VALUES),
+    enabled: z.boolean(),
+  })
+  .superRefine((values, ctx) => {
+    const error = validateValueForContentType(values.value, values.contentType)
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['value'],
+        message: error,
+      })
+    }
+  })
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -69,8 +54,11 @@ export function ConfigEditorPage() {
   const configId = params.configId
   const isNew = !configId || configId === 'new'
   const navigate = useNavigate()
-  const location = useLocation<{ from?: { pathname: string; search?: string } }>()
-  const returnTo = location.state?.from ?? { pathname: '/configs', search: '' }
+  const location = useLocation()
+  const returnTo = (location.state as { from?: { pathname: string; search?: string } } | undefined)?.from ?? {
+    pathname: '/configs',
+    search: '',
+  }
   const { draft, setDraft, updateContent } = useConfigEditorStore()
 
   const form = useForm<FormValues>({
@@ -78,36 +66,80 @@ export function ConfigEditorPage() {
     defaultValues: DEFAULT_VALUES,
   })
 
-  const enabledValue = form.watch('enabled')
-  const contentTypeValue = form.watch('contentType')
+  const enabledValue =
+    useWatch<FormValues, 'enabled'>({
+      control: form.control,
+      name: 'enabled',
+    }) ?? true
+  const contentTypeValue =
+    useWatch<FormValues, 'contentType'>({
+      control: form.control,
+      name: 'contentType',
+    }) ?? ('STRING' as ContentTypeValue)
+  const value =
+    useWatch<FormValues, 'value'>({
+      control: form.control,
+      name: 'value',
+    }) ?? ''
+
+  const handleContentTypeChange = (nextType: ContentTypeValue) => {
+    const previousValue = form.getValues('value')
+    const normalizedValue = normalizeValueForContentType(previousValue, nextType)
+    form.setValue('contentType', nextType, { shouldDirty: true })
+    form.setValue('value', normalizedValue, { shouldDirty: true, shouldValidate: true })
+    updateContent(normalizedValue)
+  }
+
+  const handleValueChange = (nextValue: string) => {
+    form.setValue('value', nextValue, { shouldDirty: true, shouldValidate: true })
+    updateContent(nextValue)
+  }
 
   const detailQuery = useQuery({
     queryKey: ['config', configId],
     queryFn: () => fetchConfigDetail(configId!),
     enabled: Boolean(configId) && !isNew,
   })
+  const loadedConfig = detailQuery.data && detailQuery.data.id === configId ? detailQuery.data : undefined
 
   useEffect(() => {
-    if (detailQuery.data) {
-      const { tenant, namespace, appId, key, value, contentType, enabled } = detailQuery.data
-      setDraft(detailQuery.data)
+    if (isNew) {
+      setDraft(undefined)
+      form.reset(DEFAULT_VALUES)
+      updateContent(DEFAULT_VALUES.value)
+      return
+    }
+    if (!configId) {
+      return
+    }
+    if (!loadedConfig) {
+      setDraft(undefined)
+      form.reset(DEFAULT_VALUES)
+      updateContent(DEFAULT_VALUES.value)
+    }
+  }, [configId, form, isNew, loadedConfig, setDraft, updateContent])
+
+  useEffect(() => {
+    if (loadedConfig) {
+      const { tenant, namespace, appId, key, value, contentType, enabled } = loadedConfig
       const safeContentType: ContentTypeValue = isContentTypeValue(contentType) ? contentType : 'STRING'
+      const normalizedValue = normalizeValueForContentType(value, safeContentType)
+      setDraft({
+        ...loadedConfig,
+        value: normalizedValue,
+      })
+      updateContent(normalizedValue)
       form.reset({
         tenant,
         namespace,
         appId,
         key,
-        value: value ?? '',
+        value: normalizedValue,
         contentType: safeContentType,
         enabled,
       })
-    } else if (isNew) {
-      setDraft(undefined)
-      form.reset(DEFAULT_VALUES)
     }
-  }, [detailQuery.data, form, isNew, setDraft])
-
-  const valueField = form.register('value')
+  }, [form, loadedConfig, setDraft, updateContent])
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
@@ -175,10 +207,7 @@ export function ConfigEditorPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="格式">
-                <Select
-                  value={contentTypeValue}
-                  onValueChange={(value: ContentTypeValue) => form.setValue('contentType', value)}
-                >
+                <Select value={contentTypeValue} onValueChange={(value: ContentTypeValue) => handleContentTypeChange(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="选择格式" />
                   </SelectTrigger>
@@ -219,18 +248,10 @@ export function ConfigEditorPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>配置内容</CardTitle>
-            <CardDescription>支持 JSON、YAML、Properties 等文本格式</CardDescription>
+            <CardDescription>根据内容类型提供 Switch / 数字输入 / JSON 编辑器，默认使用简单字符串</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              {...valueField}
-              rows={18}
-              placeholder="app.feature=true"
-              onChange={(event) => {
-                void valueField.onChange(event)
-                updateContent(event.target.value)
-              }}
-            />
+            <ValueEditor contentType={contentTypeValue} value={value} onChange={handleValueChange} />
             {form.formState.errors.value ? (
               <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
             ) : null}
@@ -255,6 +276,132 @@ function Field({ label, children, error }: FieldProps) {
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   )
+}
+
+function normalizeValueForContentType(value: string | undefined, contentType: ContentTypeValue): string {
+  const fallback = getDefaultValueForContentType(contentType)
+  if (!value) {
+    return fallback
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return fallback
+  }
+  switch (contentType) {
+    case 'BOOLEAN':
+      return trimmed.toLowerCase() === 'true' ? 'true' : 'false'
+    case 'BYTE':
+    case 'SHORT':
+    case 'INTEGER':
+    case 'LONG': {
+      const parsed = Number.parseInt(trimmed, 10)
+      return Number.isFinite(parsed) ? String(parsed) : fallback
+    }
+    case 'FLOAT':
+    case 'DOUBLE': {
+      const parsed = Number.parseFloat(trimmed)
+      return Number.isFinite(parsed) ? String(parsed) : fallback
+    }
+    case 'LIST':
+      return isJsonArrayLiteral(trimmed) ? formatJson(trimmed) : fallback
+    case 'MAP':
+      return isJsonObjectLiteral(trimmed) ? formatJson(trimmed) : fallback
+    default:
+      return value
+  }
+}
+
+function getDefaultValueForContentType(contentType: ContentTypeValue): string {
+  switch (contentType) {
+    case 'BOOLEAN':
+      return 'false'
+    case 'BYTE':
+    case 'SHORT':
+    case 'INTEGER':
+    case 'LONG':
+    case 'FLOAT':
+    case 'DOUBLE':
+      return '0'
+    case 'LIST':
+      return '[]'
+    case 'MAP':
+      return '{}'
+    default:
+      return ''
+  }
+}
+
+function validateValueForContentType(value: string, contentType: ContentTypeValue): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return '配置内容不能为空'
+  }
+  switch (contentType) {
+    case 'BOOLEAN':
+      return isBooleanLiteral(trimmed) ? null : '布尔值仅支持 true 或 false'
+    case 'BYTE':
+    case 'SHORT':
+    case 'INTEGER':
+    case 'LONG':
+      return isIntegerLiteral(trimmed) ? null : '请输入有效整数'
+    case 'FLOAT':
+    case 'DOUBLE':
+      return isFloatLiteral(trimmed) ? null : '请输入有效数字'
+    case 'LIST':
+      return isJsonArrayLiteral(trimmed) ? null : '请输入有效 JSON 数组'
+    case 'MAP':
+      return isJsonObjectLiteral(trimmed) ? null : '请输入有效 JSON 对象'
+    default:
+      return null
+  }
+}
+
+function isBooleanLiteral(value: string) {
+  const normalized = value.toLowerCase()
+  return normalized === 'true' || normalized === 'false'
+}
+
+function isIntegerLiteral(value: string) {
+  if (!/^[+-]?\d+$/.test(value)) {
+    return false
+  }
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed)
+}
+
+function isFloatLiteral(value: string) {
+  if (value.length === 0) {
+    return false
+  }
+  const parsed = Number(value)
+  return Number.isFinite(parsed)
+}
+
+function isJsonArrayLiteral(value: string) {
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed)
+  } catch {
+    return false
+  }
+}
+
+function isJsonObjectLiteral(value: string) {
+  try {
+    const parsed = JSON.parse(value)
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+  } catch {
+    return false
+  }
+}
+
+function formatJson(value: string) {
+  try {
+    const parsed = JSON.parse(value)
+    return JSON.stringify(parsed, null, 2)
+  } catch {
+    return value
+  }
 }
 
 function isContentTypeValue(value?: string): value is ContentTypeValue {
