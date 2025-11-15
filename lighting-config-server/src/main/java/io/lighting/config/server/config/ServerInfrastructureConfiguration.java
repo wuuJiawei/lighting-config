@@ -1,5 +1,6 @@
 package io.lighting.config.server.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.core.api.EventBus;
 import io.lighting.config.core.util.TimeProvider;
@@ -14,6 +15,8 @@ import io.lighting.config.server.notify.InMemoryNotifyEngine;
 import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.notify.SimpleEventBus;
 import io.lighting.config.server.repository.InMemoryConfigRepository;
+import io.lighting.config.server.repository.InMemoryRevisionRepository;
+import io.lighting.config.server.repository.RevisionRepository;
 import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.server.service.DefaultConfigApplicationService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -64,8 +67,11 @@ public class ServerInfrastructureConfiguration {
                                                              NotifyEngine notifyEngine,
                                                              ChangeFeed changeFeed,
                                                              TimeProvider timeProvider,
-                                                             ClientSnapshotService clientSnapshotService) {
-        return new DefaultConfigApplicationService(repository, notifyEngine, changeFeed, timeProvider, clientSnapshotService);
+                                                             ClientSnapshotService clientSnapshotService,
+                                                             RevisionRepository revisionRepository,
+                                                             ObjectMapper objectMapper) {
+        return new DefaultConfigApplicationService(repository, notifyEngine, changeFeed, timeProvider,
+                clientSnapshotService, revisionRepository, objectMapper);
     }
 
     @Bean
@@ -92,5 +98,11 @@ public class ServerInfrastructureConfiguration {
     public ClientSnapshotService clientSnapshotService(ConfigRepository repository,
                                                        CacheMissTracker missTracker) {
         return new ClientSnapshotService(repository, missTracker);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(RevisionRepository.class)
+    public RevisionRepository revisionRepository() {
+        return new InMemoryRevisionRepository();
     }
 }

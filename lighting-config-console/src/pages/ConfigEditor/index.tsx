@@ -208,7 +208,7 @@ export function ConfigEditorPage() {
                 checked={enabledValue}
                 onChange={(event) => form.setValue('enabled', event.target.checked)}
               />
-              启用配置（关闭后客户端会收到删除事件）
+              启用配置
             </label>
             <Button type="submit" disabled={mutation.isPending} className="w-full">
               {mutation.isPending ? '保存中...' : '保存配置'}

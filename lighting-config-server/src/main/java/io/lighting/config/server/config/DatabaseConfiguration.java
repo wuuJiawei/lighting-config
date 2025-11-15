@@ -6,6 +6,8 @@ import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.monitoring.CacheMissAlertRepository;
 import io.lighting.config.server.monitoring.JdbcCacheMissAlertRepository;
 import io.lighting.config.server.repository.JdbcConfigRepository;
+import io.lighting.config.server.repository.JdbcRevisionRepository;
+import io.lighting.config.server.repository.RevisionRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -49,5 +51,11 @@ public class DatabaseConfiguration {
     @ConditionalOnBean(NamedParameterJdbcTemplate.class)
     public CacheMissAlertRepository cacheMissAlertJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         return new JdbcCacheMissAlertRepository(jdbcTemplate);
+    }
+
+    @Bean
+    @ConditionalOnBean(NamedParameterJdbcTemplate.class)
+    public RevisionRepository revisionJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        return new JdbcRevisionRepository(jdbcTemplate);
     }
 }

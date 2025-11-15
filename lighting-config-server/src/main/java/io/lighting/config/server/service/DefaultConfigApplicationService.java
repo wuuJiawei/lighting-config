@@ -1,5 +1,7 @@
 package io.lighting.config.server.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.core.dto.ChangeType;
 import io.lighting.config.core.dto.ConfigChange;
@@ -7,11 +9,15 @@ import io.lighting.config.core.dto.ConfigChangeEvent;
 import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ConfigItem;
+import io.lighting.config.core.model.Revision;
+import io.lighting.config.core.model.RevisionOperation;
 import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.cache.ClientSnapshotService;
 import io.lighting.config.server.notify.ChangeFeed;
 import io.lighting.config.server.notify.NotifyEngine;
+import io.lighting.config.server.repository.RevisionRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,17 +28,23 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
     private final ChangeFeed changeFeed;
     private final TimeProvider timeProvider;
     private final ClientSnapshotService clientSnapshotService;
+    private final RevisionRepository revisionRepository;
+    private final ObjectMapper objectMapper;
 
     public DefaultConfigApplicationService(ConfigRepository repository,
                                            NotifyEngine notifyEngine,
                                            ChangeFeed changeFeed,
                                            TimeProvider timeProvider,
-                                           ClientSnapshotService clientSnapshotService) {
+                                           ClientSnapshotService clientSnapshotService,
+                                           RevisionRepository revisionRepository,
+                                           ObjectMapper objectMapper) {
         this.repository = repository;
         this.notifyEngine = notifyEngine;
         this.changeFeed = changeFeed;
         this.timeProvider = timeProvider;
         this.clientSnapshotService = clientSnapshotService;
+        this.revisionRepository = revisionRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -54,10 +66,12 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
 
     @Override
     public ConfigItem upsert(ConfigItem item, String operator) {
+        Optional<ConfigItem> existing = repository.get(item.getTenant(), item.getNamespace(), item.getAppId(), item.getKey());
         repository.upsert(item, operator);
         ConfigItem persisted = repository.get(item.getTenant(), item.getNamespace(), item.getAppId(), item.getKey())
                 .orElse(item);
         publishChange(persisted, ChangeType.UPSERT, operator);
+        recordRevision(existing.orElse(null), persisted, RevisionOperation.UPSERT, operator);
         return persisted;
     }
 
@@ -78,6 +92,7 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
                 .build();
         publish(change, operator);
         clientSnapshotService.invalidate(coordinate);
+        recordRevision(existing.orElse(null), null, RevisionOperation.DELETE, operator);
     }
 
     private void publishChange(ConfigItem item, ChangeType type, String operator) {
@@ -108,5 +123,49 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
 
     private long nowMillis() {
         return timeProvider.now().toEpochMilli();
+    }
+
+    private Instant nowInstant() {
+        return timeProvider.now();
+    }
+
+    private void recordRevision(ConfigItem before, ConfigItem after, RevisionOperation operation, String operator) {
+        ConfigItem reference = after != null ? after : before;
+        if (reference == null) {
+            return;
+        }
+        Revision.Builder builder = Revision.builder()
+                .coordinate(coordinateOf(reference))
+                .operation(operation)
+                .operator(operator)
+                .diff(buildDiff(before, after))
+                .createdAt(nowInstant());
+        if (operation == RevisionOperation.DELETE && before != null) {
+            builder.version(before.getVersion());
+        } else {
+            builder.version(reference.getVersion());
+        }
+        revisionRepository.save(builder.build());
+    }
+
+    private String buildDiff(ConfigItem before, ConfigItem after) {
+        ObjectNode root = objectMapper.createObjectNode();
+        if (before != null) {
+            root.set("before", snapshot(before));
+        }
+        if (after != null) {
+            root.set("after", snapshot(after));
+        }
+        return root.size() == 0 ? "" : root.toString();
+    }
+
+    private ObjectNode snapshot(ConfigItem item) {
+        ObjectNode node = objectMapper.createObjectNode();
+        node.put("value", item.getValue());
+        node.put("contentType", item.getContentType().name());
+        node.put("enabled", item.isEnabled());
+        node.put("version", item.getVersion());
+        node.set("labels", objectMapper.valueToTree(item.getLabels()));
+        return node;
     }
 }
