@@ -39,6 +39,7 @@ public class LightingClientAutoConfiguration {
                 .bootstrapPrefixes(properties.getBootstrapPrefixes())
                 .pollInterval(properties.getPollInterval())
                 .bannerEnabled(properties.isBannerEnabled())
+                .authToken(properties.getAuthToken())
                 .build();
     }
 

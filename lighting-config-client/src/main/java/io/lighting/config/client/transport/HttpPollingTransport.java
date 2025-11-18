@@ -54,11 +54,12 @@ public class HttpPollingTransport implements PollingTransport {
         try {
             URI uri = baseUri.resolve("/lighting-config/api/poll");
             String body = objectMapper.writeValueAsString(request);
-            HttpRequest httpRequest = HttpRequest.newBuilder(uri)
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(uri)
                     .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.ofString(body));
+            applyAuth(requestBuilder);
+            HttpRequest httpRequest = requestBuilder.build();
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
                 throw new IllegalStateException("Polling request failed with status " + response.statusCode());
@@ -79,6 +80,16 @@ public class HttpPollingTransport implements PollingTransport {
             return URI.create(address.substring(0, address.length() - 1));
         }
         return URI.create(address);
+    }
+
+    private void applyAuth(HttpRequest.Builder builder) {
+        String token = options.getAuthToken();
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        String value = token.trim();
+        builder.header("Authorization", "Bearer " + value);
+        builder.header("X-Lighting-Token", value);
     }
 
     private static final class RestPollResponse {

@@ -21,6 +21,7 @@ public class LightingClientProperties {
     private boolean enabled = true;
     private boolean bannerEnabled = true;
     private Duration pollInterval = Duration.ofSeconds(30);
+    private String authToken;
 
     public String getTenant() {
         return tenant;
@@ -104,6 +105,14 @@ public class LightingClientProperties {
 
     public void setPollInterval(Duration pollInterval) {
         this.pollInterval = pollInterval;
+    }
+
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    public void setAuthToken(String authToken) {
+        this.authToken = authToken;
     }
 
     public static class Server {

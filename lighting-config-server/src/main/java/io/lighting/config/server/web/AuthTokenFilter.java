@@ -1,6 +1,8 @@
 package io.lighting.config.server.web;
 
 import io.lighting.config.server.service.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -13,6 +15,7 @@ import java.io.IOException;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthTokenFilter.class);
     private final AuthService authService;
 
     public AuthTokenFilter(AuthService authService) {
@@ -37,6 +40,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        log.warn("Rejecting {} {} due to missing/invalid auth token", request.getMethod(), path);
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.getWriter().write("Unauthorized");
     }

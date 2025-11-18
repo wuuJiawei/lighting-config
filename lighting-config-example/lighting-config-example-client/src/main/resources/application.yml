@@ -8,6 +8,7 @@ lighting:
       namespace: default
       app-id: order-service
       poll-interval: 5s
+      auth-token: lighting-console-token
       server:
         address: http://localhost:7086
       banner-enabled: true

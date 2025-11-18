@@ -25,6 +25,7 @@ public final class ClientOptions {
     private final List<String> bootstrapPrefixes;
     private final Duration pollInterval;
     private final boolean bannerEnabled;
+    private final String authToken;
 
     private ClientOptions(Builder builder) {
         this.serverAddress = Objects.requireNonNull(builder.serverAddress, "serverAddress");
@@ -37,6 +38,7 @@ public final class ClientOptions {
         this.bootstrapPrefixes = List.copyOf(builder.bootstrapPrefixes);
         this.pollInterval = builder.pollInterval;
         this.bannerEnabled = builder.bannerEnabled;
+        this.authToken = builder.authToken;
         this.resolvedAppIds = AppScope.parseWithGlobal(this.appId);
     }
 
@@ -88,6 +90,10 @@ public final class ClientOptions {
         return bannerEnabled;
     }
 
+    public String getAuthToken() {
+        return authToken;
+    }
+
     public Builder toBuilder() {
         return new Builder()
                 .serverAddress(serverAddress)
@@ -95,6 +101,7 @@ public final class ClientOptions {
                 .tenant(tenant)
                 .namespace(namespace)
                 .appId(appId)
+                .authToken(authToken)
                 .labels(labels)
                 .metadata(metadata)
                 .bootstrapPrefixes(bootstrapPrefixes)
@@ -113,6 +120,7 @@ public final class ClientOptions {
         private List<String> bootstrapPrefixes = List.of();
         private Duration pollInterval = Duration.ofSeconds(30);
         private boolean bannerEnabled = true;
+        private String authToken;
 
         public Builder serverAddress(String serverAddress) {
             this.serverAddress = serverAddress;
@@ -171,6 +179,11 @@ public final class ClientOptions {
 
         public Builder bannerEnabled(boolean bannerEnabled) {
             this.bannerEnabled = bannerEnabled;
+            return this;
+        }
+
+        public Builder authToken(String authToken) {
+            this.authToken = authToken;
             return this;
         }
 
