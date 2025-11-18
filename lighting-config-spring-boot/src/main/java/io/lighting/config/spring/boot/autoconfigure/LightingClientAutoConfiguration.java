@@ -4,10 +4,15 @@ import io.lighting.config.client.LightingClient;
 import io.lighting.config.client.config.ClientOptions;
 import io.lighting.config.client.transport.HttpPollingTransport;
 import io.lighting.config.client.transport.PollingTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -17,6 +22,8 @@ import org.springframework.context.annotation.Lazy;
 @EnableConfigurationProperties(LightingClientProperties.class)
 @ConditionalOnProperty(prefix = "lighting.config.client", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class LightingClientAutoConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(LightingClientAutoConfiguration.class);
 
     @Bean
     @ConditionalOnMissingBean
@@ -44,12 +51,19 @@ public class LightingClientAutoConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean
     public LightingClient lightingClient(ClientOptions options,
-                                         PollingTransport transport,
-                                         LightingClientProperties properties) {
-        LightingClient client = new LightingClient(options, transport);
-        if (properties.isAutoStart()) {
-            client.start();
-        }
-        return client;
+                                         PollingTransport transport) {
+        return new LightingClient(options, transport);
+    }
+
+    @Bean
+    @ConditionalOnBean(LightingClient.class)
+    public ApplicationListener<ApplicationReadyEvent> lightingClientStartupListener(LightingClient client,
+                                                                                    LightingClientProperties properties) {
+        return event -> {
+            log.info("Lighting client startup event: {}", event);
+            if (properties.isAutoStart()) {
+                client.start();
+            }
+        };
     }
 }
