@@ -15,7 +15,9 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -53,15 +55,15 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                 return;
             }
-            String key = prefix + fieldToKey(field.getName());
             ReflectionUtils.makeAccessible(field);
             Object currentValue = ReflectionUtils.getField(field, bean);
             FieldBinding binding = new FieldBinding(field, field.getGenericType());
-            Object resolved = resolveValue(key, binding.targetType()).orElse(currentValue);
+            List<String> candidateKeys = buildKeyVariants(prefix, field.getName());
+            Object resolved = resolveValue(candidateKeys, binding.targetType()).orElse(currentValue);
             if (resolved != null) {
                 ReflectionUtils.setField(binding.field(), bean, resolved);
             }
-            mapping.put(key, binding);
+            candidateKeys.forEach(key -> mapping.put(key, binding));
         });
         return mapping;
     }
@@ -73,6 +75,16 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
         }
         Object converted = convert(change.getValue(), change.getContentType(), binding.targetType());
         ReflectionUtils.setField(binding.field(), bean, converted);
+    }
+
+    private Optional<Object> resolveValue(List<String> keys, Type targetType) {
+        for (String key : keys) {
+            Optional<Object> value = resolveValue(key, targetType);
+            if (value.isPresent()) {
+                return value;
+            }
+        }
+        return Optional.empty();
     }
 
     private Optional<Object> resolveValue(String key, Type targetType) {
@@ -101,18 +113,58 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
         return prefix.endsWith(".") ? prefix : prefix + ".";
     }
 
+    private List<String> buildKeyVariants(String prefix, String fieldName) {
+        List<String> variants = new ArrayList<>();
+        addVariant(variants, prefix + normalizeExplicit(fieldName));
+        addVariant(variants, prefix + fieldToKey(fieldName, '.'));
+        addVariant(variants, prefix + fieldToKey(fieldName, '-'));
+        addVariant(variants, prefix + fieldToKey(fieldName, '_'));
+        return variants;
+    }
+
+    private String normalizeExplicit(String name) {
+        if (name == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < name.length(); i++) {
+            char ch = name.charAt(i);
+            if (ch == '-' || ch == '_') {
+                builder.append('.');
+            } else {
+                builder.append(ch);
+            }
+        }
+        return builder.toString();
+    }
+
+    private void addVariant(List<String> variants, String candidate) {
+        if (candidate == null || candidate.isEmpty()) {
+            return;
+        }
+        if (!variants.contains(candidate)) {
+            variants.add(candidate);
+        }
+    }
+
     private String fieldToKey(String name) {
+        return fieldToKey(name, '.');
+    }
+
+    private String fieldToKey(String name, char delimiter) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < name.length(); i++) {
             char ch = name.charAt(i);
             if (Character.isUpperCase(ch)) {
-                builder.append('.').append(Character.toLowerCase(ch));
+                builder.append(delimiter).append(Character.toLowerCase(ch));
+            } else if (ch == '_' || ch == '-') {
+                builder.append(delimiter);
             } else {
                 builder.append(ch);
             }
         }
         String result = builder.toString();
-        if (result.startsWith(".")) {
+        if (!result.isEmpty() && result.charAt(0) == delimiter) {
             result = result.substring(1);
         }
         return result;
