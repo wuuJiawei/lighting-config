@@ -24,7 +24,7 @@ final class JacksonValueDecoder implements ConfigValueDecoder {
             return false;
         }
         if (Iterable.class.isAssignableFrom(rawClass) || rawClass.isArray()) {
-            return true;
+            return contentType == ContentType.LIST || contentType == ContentType.MAP || contentType == ContentType.STRING;
         }
         if (Map.class.isAssignableFrom(rawClass)) {
             return true;
@@ -34,7 +34,7 @@ final class JacksonValueDecoder implements ConfigValueDecoder {
                 && !CharSequence.class.isAssignableFrom(rawClass)
                 && !rawClass.isEnum();
         if (complexPojo) {
-            return contentType == ContentType.MAP || contentType == ContentType.LIST || contentType == ContentType.STRING;
+            return contentType == ContentType.MAP || contentType == ContentType.LIST;
         }
         return contentType == ContentType.MAP || contentType == ContentType.LIST;
     }

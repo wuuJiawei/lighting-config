@@ -5,14 +5,14 @@ import io.lighting.config.client.value.ValueDecoderRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.convert.ConversionService;
 
 /**
- * Registers configuration-related bean post-processors after the context is fully refreshed
- * to avoid premature initialization issues.
+ * 在应用启动完成后再注册自定义 BeanPostProcessor，并对已存在的 Bean 进行一次补偿处理，避免默认值未被覆盖。
  */
 public class LightingConfigProcessorRegistrar implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -35,10 +35,35 @@ public class LightingConfigProcessorRegistrar implements ApplicationListener<App
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        context.getBeanFactory().addBeanPostProcessor(
-                new LightingValueBeanPostProcessor(client, conversionServiceProvider, decoderRegistry));
-        context.getBeanFactory().addBeanPostProcessor(
-                new LightingPropertiesBeanPostProcessor(client, conversionServiceProvider, decoderRegistry));
-        log.info("Lighting configuration bean post-processors registered after context refresh.");
+        LightingValueBeanPostProcessor valueBpp =
+                new LightingValueBeanPostProcessor(client, conversionServiceProvider, decoderRegistry);
+        LightingPropertiesBeanPostProcessor propsBpp =
+                new LightingPropertiesBeanPostProcessor(client, conversionServiceProvider, decoderRegistry);
+
+        context.getBeanFactory().addBeanPostProcessor(valueBpp);
+        context.getBeanFactory().addBeanPostProcessor(propsBpp);
+        log.info("Lighting configuration BeanPostProcessor registered after context refresh.");
+        reprocessSingletons(valueBpp, propsBpp);
+    }
+
+    private void reprocessSingletons(BeanPostProcessor... processors) {
+        String[] beanNames = context.getBeanFactory().getSingletonNames();
+        for (String beanName : beanNames) {
+            Object bean;
+            try {
+                bean = context.getBean(beanName);
+            } catch (Exception ex) {
+                log.debug("Skip reprocessing bean {} due to initialization error: {}", beanName, ex.getMessage());
+                continue;
+            }
+            for (BeanPostProcessor processor : processors) {
+                try {
+                    processor.postProcessAfterInitialization(bean, beanName);
+                } catch (Exception ex) {
+                    log.warn("Failed to reprocess bean {} with {}: {}", beanName,
+                            processor.getClass().getSimpleName(), ex.getMessage());
+                }
+            }
+        }
     }
 }
