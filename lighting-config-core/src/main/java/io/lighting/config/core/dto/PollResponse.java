@@ -17,7 +17,7 @@ public final class PollResponse {
     private PollResponse(Builder builder) {
         this.version = builder.version;
         this.items = Collections.unmodifiableList(List.copyOf(builder.items));
-        this.advice = builder.advice == null ? PollAdvice.builder().build() : builder.advice;
+        this.advice = builder.advice;
         this.serverTime = builder.serverTime == null ? System.currentTimeMillis() : builder.serverTime;
     }
 

@@ -99,11 +99,18 @@ public class HttpPollingTransport implements PollingTransport {
         public Long serverTime;
 
         PollResponse toDomain(Duration fallbackInterval) {
-            Duration next = advice != null && advice.nextInterval != null ? advice.nextInterval : fallbackInterval;
+            PollAdvice domainAdvice = null;
+            if (advice != null) {
+                Duration next = advice.nextInterval != null ? advice.nextInterval : fallbackInterval;
+                domainAdvice = PollAdvice.builder()
+                        .nextInterval(next)
+                        .throttled(advice.throttled)
+                        .build();
+            }
             return PollResponse.builder()
                     .version(version)
                     .items(items.stream().map(RestConfigChange::toChange).collect(Collectors.toList()))
-                    .advice(PollAdvice.builder().nextInterval(next).throttled(advice != null && advice.throttled).build())
+                    .advice(domainAdvice)
                     .serverTime(serverTime != null ? serverTime : System.currentTimeMillis())
                     .build();
         }
