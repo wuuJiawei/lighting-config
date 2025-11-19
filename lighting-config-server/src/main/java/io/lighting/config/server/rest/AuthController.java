@@ -3,6 +3,8 @@ package io.lighting.config.server.rest;
 import io.lighting.config.server.rest.dto.LoginRequest;
 import io.lighting.config.server.rest.dto.LoginResponse;
 import io.lighting.config.server.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +19,7 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("/lighting-config/api/auth")
 @Validated
+@Tag(name = "Authentication")
 public class AuthController {
 
     private final AuthService authService;
@@ -26,6 +29,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "Exchange a known token for a session token (or echo existing token)")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         if (!authService.isEnabled()) {
             return ResponseEntity.ok(LoginResponse.disabled());

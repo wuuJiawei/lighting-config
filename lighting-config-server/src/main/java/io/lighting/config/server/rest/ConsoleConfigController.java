@@ -7,6 +7,11 @@ import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.rest.dto.ConfigResponse;
 import io.lighting.config.server.rest.dto.ConfigUpsertRequest;
 import io.lighting.config.server.service.ConfigApplicationService;
+import io.lighting.config.server.config.OpenApiConfiguration;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,6 +30,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/lighting-config/api/admin/config")
 @Validated
+@Tag(name = "Admin Config")
+@SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
 public class ConsoleConfigController {
 
     private final ConfigApplicationService applicationService;
@@ -36,11 +43,16 @@ public class ConsoleConfigController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConfigResponse>> query(@RequestParam(defaultValue = "default") String tenant,
-                                                      @RequestParam(defaultValue = "default") String namespace,
-                                                      @RequestParam(name = "appId", defaultValue = "default") String appId,
-                                                      @RequestParam(required = false) String key,
-                                                      @RequestParam(required = false) String prefix) {
+    @Operation(summary = "Query configuration items", description = "Supports exact key lookup or prefix scanning.")
+    public ResponseEntity<List<ConfigResponse>> query(
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestParam(defaultValue = "default") String tenant,
+            @Parameter(description = "Namespace identifier", example = "default")
+            @RequestParam(defaultValue = "default") String namespace,
+            @Parameter(description = "App ID / scope", example = "default")
+            @RequestParam(name = "appId", defaultValue = "default") String appId,
+            @Parameter(description = "Exact key to fetch") @RequestParam(required = false) String key,
+            @Parameter(description = "Prefix to filter keys") @RequestParam(required = false) String prefix) {
         if (key != null && !key.isEmpty()) {
             return applicationService.get(tenant, namespace, appId, key)
                     .map(ConfigResponse::new)
@@ -61,6 +73,7 @@ public class ConsoleConfigController {
     }
 
     @PostMapping
+    @Operation(summary = "Create or update a configuration entry")
     public ResponseEntity<ConfigResponse> upsert(@Valid @RequestBody ConfigUpsertRequest request) {
         Instant now = timeProvider.now();
         ConfigItem saved = applicationService.upsert(request.toConfigItem(now), "api");
@@ -68,10 +81,12 @@ public class ConsoleConfigController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> delete(@RequestParam(defaultValue = "default") String tenant,
-                                       @RequestParam(defaultValue = "default") String namespace,
-                                       @RequestParam(name = "appId", defaultValue = "default") String appId,
-                                       @RequestParam String key) {
+    @Operation(summary = "Delete a configuration entry")
+    public ResponseEntity<Void> delete(
+            @RequestParam(defaultValue = "default") String tenant,
+            @RequestParam(defaultValue = "default") String namespace,
+            @RequestParam(name = "appId", defaultValue = "default") String appId,
+            @RequestParam String key) {
         applicationService.delete(tenant, namespace, appId, key, "api");
         return ResponseEntity.noContent().build();
     }

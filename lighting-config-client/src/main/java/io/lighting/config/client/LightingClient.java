@@ -4,6 +4,7 @@ import io.lighting.config.client.cache.ConfigCache;
 import io.lighting.config.client.config.ClientOptions;
 import io.lighting.config.client.listener.ConfigListener;
 import io.lighting.config.client.listener.ListenerRegistry;
+import io.lighting.config.client.listener.LoggingConfigListener;
 import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.dto.ConfigChange;
 import io.lighting.config.core.dto.PollAdvice;
@@ -30,15 +31,14 @@ import org.slf4j.LoggerFactory;
 public class LightingClient implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(LightingClient.class);
-    private static final String BANNER =
-            "  _      _ _   _ _   _ _   _ _____ _____ _   _  _____ _____\n"
-                    + " | |    (_) | (_) | (_) \\ | |_   _|  __ \\ \\ | |/ ____|  __ \\\n"
-                    + " | |     _| |_ _| |_ _|  \\| | | | | |  | |\\| | |    | |__) |\n"
-                    + " | |    | | __| | __| | . ` | | | | |  | | . ` | |    |  _  /\n"
-                    + " | |____| | |_ | | |_ | |\\  |_| |_| |__| | |\\  | |____| | \\ \\\n"
-                    + " |______|_|\\__|/ |\\__|_| \\_|_____|_____/|_| \\_|\\_____|_|  \\_\\\n"
-                    + "              _/ |\n"
-                    + "             |__/";
+    private static final String BANNER = "" +
+            "██╗     ██╗ ██████╗ ██╗  ██╗████████╗██╗███╗   ██╗ ██████╗        ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ \n" +
+            "██║     ██║██╔════╝ ██║  ██║╚══██╔══╝██║████╗  ██║██╔════╝       ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ \n" +
+            "██║     ██║██║  ███╗███████║   ██║   ██║██╔██╗ ██║██║  ███╗█████╗██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗\n" +
+            "██║     ██║██║   ██║██╔══██║   ██║   ██║██║╚██╗██║██║   ██║╚════╝██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║\n" +
+            "███████╗██║╚██████╔╝██║  ██║   ██║   ██║██║ ╚████║╚██████╔╝      ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝\n" +
+            "╚══════╝╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝        ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ \n" +
+            "                                                                                                                ";
 
     private final ClientOptions options;
     private final PollingTransport transport;
@@ -65,6 +65,7 @@ public class LightingClient implements AutoCloseable {
                           PollingTransport transport) {
         this.options = options;
         this.transport = transport;
+        this.listenerRegistry.addListener("", new LoggingConfigListener(log));
         this.appScopes = options.getResolvedAppIds();
         this.scopePriority = buildScopePriority(appScopes);
         this.fallbackPriority = appScopes.size();
@@ -101,7 +102,6 @@ public class LightingClient implements AutoCloseable {
             if (!response.getItems().isEmpty() && response.getVersion() > lastVersion.get()) {
                 response.getItems().forEach(this::applyChange);
                 lastVersion.updateAndGet(current -> Math.max(current, response.getVersion()));
-                logStartupLine(bootstrap ? "started" : "synced");
             } else if (bootstrap) {
                 logStartupLine("started");
             }

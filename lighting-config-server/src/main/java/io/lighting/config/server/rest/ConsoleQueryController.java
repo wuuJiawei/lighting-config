@@ -1,10 +1,15 @@
 package io.lighting.config.server.rest;
 
+import io.lighting.config.server.config.OpenApiConfiguration;
 import io.lighting.config.server.rest.dto.AuditRecordResponse;
 import io.lighting.config.server.rest.dto.CacheMissAlertResponse;
 import io.lighting.config.server.rest.dto.DashboardStatView;
 import io.lighting.config.server.rest.dto.NamespaceSummaryResponse;
 import io.lighting.config.server.service.ConsoleQueryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +22,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/lighting-config/api/admin/console")
+@Tag(name = "Admin Console")
+@SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
 public class ConsoleQueryController {
 
     private final ObjectProvider<ConsoleQueryService> consoleQueryService;
@@ -26,7 +33,10 @@ public class ConsoleQueryController {
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<List<DashboardStatView>> stats(@RequestParam(defaultValue = "default") String tenant) {
+    @Operation(summary = "Dashboard stats for a tenant")
+    public ResponseEntity<List<DashboardStatView>> stats(
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestParam(defaultValue = "default") String tenant) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());
@@ -35,7 +45,10 @@ public class ConsoleQueryController {
     }
 
     @GetMapping("/namespaces")
-    public ResponseEntity<List<NamespaceSummaryResponse>> namespaces(@RequestParam(defaultValue = "default") String tenant) {
+    @Operation(summary = "List namespaces for a tenant")
+    public ResponseEntity<List<NamespaceSummaryResponse>> namespaces(
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestParam(defaultValue = "default") String tenant) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());
@@ -44,8 +57,12 @@ public class ConsoleQueryController {
     }
 
     @GetMapping("/audit")
-    public ResponseEntity<List<AuditRecordResponse>> audit(@RequestParam(defaultValue = "default") String tenant,
-                                                           @RequestParam(defaultValue = "10") int limit) {
+    @Operation(summary = "Recent configuration audit records")
+    public ResponseEntity<List<AuditRecordResponse>> audit(
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestParam(defaultValue = "default") String tenant,
+            @Parameter(description = "Max results (1-100)", example = "10")
+            @RequestParam(defaultValue = "10") int limit) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());
@@ -55,8 +72,12 @@ public class ConsoleQueryController {
     }
 
     @GetMapping("/cache-miss")
-    public ResponseEntity<List<CacheMissAlertResponse>> cacheMiss(@RequestParam(defaultValue = "default") String tenant,
-                                                                  @RequestParam(defaultValue = "20") int limit) {
+    @Operation(summary = "Recent cache miss alerts")
+    public ResponseEntity<List<CacheMissAlertResponse>> cacheMiss(
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestParam(defaultValue = "default") String tenant,
+            @Parameter(description = "Max results (1-100)", example = "20")
+            @RequestParam(defaultValue = "20") int limit) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());

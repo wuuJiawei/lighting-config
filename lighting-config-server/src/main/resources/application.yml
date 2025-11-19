@@ -22,3 +22,9 @@ lighting:
       mode: token
       options:
         tokens: ${LIGHTING_CONSOLE_TOKENS:lighting-console-token}
+springdoc:
+  api-docs:
+    path: /lighting-config/api/openapi
+  swagger-ui:
+    path: /lighting-config/api/docs
+    url: /lighting-config/api/openapi

@@ -31,7 +31,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
         String path = request.getRequestURI();
-        if (!path.startsWith("/lighting-config/api") || path.startsWith("/lighting-config/api/auth")) {
+        if (!path.startsWith("/lighting-config/api")
+                || path.startsWith("/lighting-config/api/auth")
+                || path.startsWith("/lighting-config/api/openapi")
+                || path.startsWith("/lighting-config/api/docs")
+                || path.contains("swagger-ui")
+        ) {
             filterChain.doFilter(request, response);
             return;
         }

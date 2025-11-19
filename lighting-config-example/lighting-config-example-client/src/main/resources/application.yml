@@ -7,7 +7,7 @@ lighting:
       tenant: default
       namespace: default
       app-id: order-service
-      poll-interval: 5s
+      poll-interval: 1s
       auth-token: lighting-console-token
       server:
         address: http://localhost:7086

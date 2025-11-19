@@ -7,6 +7,10 @@ import io.lighting.config.core.dto.PollResponse;
 import io.lighting.config.server.rest.dto.PollRequestPayload;
 import io.lighting.config.server.cache.ClientSnapshotService;
 import io.lighting.config.server.notify.ChangeFeed;
+import io.lighting.config.server.config.OpenApiConfiguration;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +24,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/lighting-config/api")
+@Tag(name = "Client Polling")
+@SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
 public class PollController {
 
     private final ClientSnapshotService clientSnapshotService;
@@ -33,6 +39,7 @@ public class PollController {
     }
 
     @PostMapping("/poll")
+    @Operation(summary = "Incremental poll endpoint for lighting-config clients")
     public PollResponse poll(@RequestBody PollRequestPayload payload) {
         PollRequest request = payload.toRequest();
         if (request.getLastVersion() == 0) {
