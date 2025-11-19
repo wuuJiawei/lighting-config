@@ -15,7 +15,6 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             ReflectionUtils.makeAccessible(field);
             Object currentValue = ReflectionUtils.getField(field, bean);
             FieldBinding binding = new FieldBinding(field, field.getGenericType());
-            List<String> candidateKeys = buildKeyVariants(prefix, field.getName());
+            List<String> candidateKeys = KeyVariantUtils.fieldVariants(prefix, field.getName());
             Object resolved = resolveValue(candidateKeys, binding.targetType()).orElse(currentValue);
             if (resolved != null) {
                 ReflectionUtils.setField(binding.field(), bean, resolved);
@@ -111,63 +110,6 @@ public class LightingPropertiesBeanPostProcessor implements BeanPostProcessor {
             return "";
         }
         return prefix.endsWith(".") ? prefix : prefix + ".";
-    }
-
-    private List<String> buildKeyVariants(String prefix, String fieldName) {
-        List<String> variants = new ArrayList<>();
-        addVariant(variants, prefix + normalizeExplicit(fieldName));
-        addVariant(variants, prefix + fieldToKey(fieldName, '.'));
-        addVariant(variants, prefix + fieldToKey(fieldName, '-'));
-        addVariant(variants, prefix + fieldToKey(fieldName, '_'));
-        return variants;
-    }
-
-    private String normalizeExplicit(String name) {
-        if (name == null) {
-            return "";
-        }
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < name.length(); i++) {
-            char ch = name.charAt(i);
-            if (ch == '-' || ch == '_') {
-                builder.append('.');
-            } else {
-                builder.append(ch);
-            }
-        }
-        return builder.toString();
-    }
-
-    private void addVariant(List<String> variants, String candidate) {
-        if (candidate == null || candidate.isEmpty()) {
-            return;
-        }
-        if (!variants.contains(candidate)) {
-            variants.add(candidate);
-        }
-    }
-
-    private String fieldToKey(String name) {
-        return fieldToKey(name, '.');
-    }
-
-    private String fieldToKey(String name, char delimiter) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < name.length(); i++) {
-            char ch = name.charAt(i);
-            if (Character.isUpperCase(ch)) {
-                builder.append(delimiter).append(Character.toLowerCase(ch));
-            } else if (ch == '_' || ch == '-') {
-                builder.append(delimiter);
-            } else {
-                builder.append(ch);
-            }
-        }
-        String result = builder.toString();
-        if (!result.isEmpty() && result.charAt(0) == delimiter) {
-            result = result.substring(1);
-        }
-        return result;
     }
 
     private static final class FieldBinding {

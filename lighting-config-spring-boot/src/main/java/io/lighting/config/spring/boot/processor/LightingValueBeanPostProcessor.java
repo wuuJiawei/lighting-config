@@ -15,6 +15,7 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Optional;
 
 public class LightingValueBeanPostProcessor implements BeanPostProcessor {
@@ -51,25 +52,30 @@ public class LightingValueBeanPostProcessor implements BeanPostProcessor {
     private void registerField(Object bean, Field field, LightingValue annotation) {
         ReflectionUtils.makeAccessible(field);
         Type targetType = field.getGenericType();
-        Object initialValue = resolveValue(annotation, targetType);
+        List<String> keyVariants = KeyVariantUtils.explicitKeyVariants(annotation.key());
+        Object initialValue = resolveValue(keyVariants, annotation.defaultValue(), targetType);
         ReflectionUtils.setField(field, bean, initialValue);
-        client.addListener(annotation.key(), change -> {
-            if (!annotation.key().equals(change.getCoordinate().getKey())) {
-                return;
-            }
-            Object value = convert(change.getValue(), change.getContentType(), targetType);
-            ReflectionUtils.setField(field, bean, value);
-        });
+        for (String key : keyVariants) {
+            client.addListener(key, change -> {
+                if (!key.equals(change.getCoordinate().getKey())) {
+                    return;
+                }
+                Object value = convert(change.getValue(), change.getContentType(), targetType);
+                ReflectionUtils.setField(field, bean, value);
+            });
+        }
     }
 
-    private Object resolveValue(LightingValue annotation, Type targetType) {
-        Optional<ConfigCache.Snapshot> snapshot = client.getSnapshot(annotation.key());
-        if (snapshot.isEmpty()) {
-            return convert(annotation.defaultValue(), ContentType.STRING, targetType);
+    private Object resolveValue(List<String> keys, String defaultValue, Type targetType) {
+        for (String key : keys) {
+            Optional<ConfigCache.Snapshot> snapshot = client.getSnapshot(key);
+            if (snapshot.isPresent()) {
+                ConfigCache.Snapshot cached = snapshot.get();
+                ContentType contentType = ContentType.fromAlias(cached.contentType());
+                return convert(cached.value(), contentType, targetType);
+            }
         }
-        ConfigCache.Snapshot cached = snapshot.get();
-        ContentType contentType = ContentType.fromAlias(cached.contentType());
-        return convert(cached.value(), contentType, targetType);
+        return convert(defaultValue, ContentType.STRING, targetType);
     }
 
     private Object convert(String value, ContentType contentType, Type targetType) {
