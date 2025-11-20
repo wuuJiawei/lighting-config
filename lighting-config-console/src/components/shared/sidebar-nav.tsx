@@ -19,8 +19,9 @@ export function SidebarNav({ items, isOpen, onClose }: SidebarNavProps) {
       />
       <aside
         className={cn(
-          'fixed inset-y-0 z-40 w-64 border-r bg-card p-5 transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 border-r bg-card p-5 transition-transform',
           isOpen ? 'translate-x-0' : '-translate-x-full',
+          'lg:translate-x-0',
         )}
       >
         <div className="mb-8 flex items-center justify-between">

@@ -5,8 +5,10 @@ import { useForm, useWatch, type SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { fetchConfigDetail, upsertConfig } from '@/api/config'
+import { fetchNamespaces } from '@/api/namespace'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CreatableSelect } from '@/components/ui/creatable-select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -71,6 +73,21 @@ export function ConfigEditorPage() {
       control: form.control,
       name: 'enabled',
     }) ?? true
+  const tenantValue =
+    useWatch<FormValues, 'tenant'>({
+      control: form.control,
+      name: 'tenant',
+    }) ?? DEFAULT_VALUES.tenant
+  const namespaceValue =
+    useWatch<FormValues, 'namespace'>({
+      control: form.control,
+      name: 'namespace',
+    }) ?? DEFAULT_VALUES.namespace
+  const appIdValue =
+    useWatch<FormValues, 'appId'>({
+      control: form.control,
+      name: 'appId',
+    }) ?? DEFAULT_VALUES.appId
   const contentTypeValue =
     useWatch<FormValues, 'contentType'>({
       control: form.control,
@@ -99,6 +116,10 @@ export function ConfigEditorPage() {
     queryKey: ['config', configId],
     queryFn: () => fetchConfigDetail(configId!),
     enabled: Boolean(configId) && !isNew,
+  })
+  const namespacesQuery = useQuery({
+    queryKey: ['namespaces', tenantValue],
+    queryFn: () => fetchNamespaces(tenantValue),
   })
   const loadedConfig = detailQuery.data && detailQuery.data.id === configId ? detailQuery.data : undefined
 
@@ -162,6 +183,20 @@ export function ConfigEditorPage() {
 
   const onSubmit: SubmitHandler<FormValues> = (values) => mutation.mutate(values)
 
+  const availableNamespaces = namespacesQuery.data ?? []
+  const namespaceOptions = toUniqueOptions([
+    namespaceValue,
+    DEFAULT_VALUES.namespace,
+    ...availableNamespaces.map((item) => item.name),
+  ])
+  const selectedNamespace = availableNamespaces.find((item) => item.name === namespaceValue)
+  const appOptions = toUniqueOptions([
+    appIdValue,
+    DEFAULT_VALUES.appId,
+    ...(selectedNamespace?.appIds ?? []),
+  ])
+  const tenantOptions = toUniqueOptions([tenantValue, DEFAULT_VALUES.tenant])
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -191,15 +226,33 @@ export function ConfigEditorPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="租户" error={form.formState.errors.tenant?.message}>
-                <Input {...form.register('tenant')} placeholder="default" />
+                <CreatableSelect
+                  value={tenantValue}
+                  options={tenantOptions}
+                  placeholder="选择或创建租户"
+                  inputPlaceholder="输入租户名称，回车快速创建"
+                  onChange={(next) => form.setValue('tenant', next, { shouldDirty: true, shouldValidate: true })}
+                />
               </Field>
               <Field label="命名空间" error={form.formState.errors.namespace?.message}>
-                <Input {...form.register('namespace')} placeholder="default" />
+                <CreatableSelect
+                  value={namespaceValue}
+                  options={namespaceOptions}
+                  placeholder="选择或创建命名空间"
+                  inputPlaceholder="输入命名空间，回车快速创建"
+                  onChange={(next) => form.setValue('namespace', next, { shouldDirty: true, shouldValidate: true })}
+                />
               </Field>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="App ID" error={form.formState.errors.appId?.message}>
-                <Input {...form.register('appId')} placeholder="lighting-console" />
+                <CreatableSelect
+                  value={appIdValue}
+                  options={appOptions}
+                  placeholder="选择或创建 App ID"
+                  inputPlaceholder="输入 App ID，回车快速创建"
+                  onChange={(next) => form.setValue('appId', next, { shouldDirty: true, shouldValidate: true })}
+                />
               </Field>
               <Field label="Key" error={form.formState.errors.key?.message}>
                 <Input {...form.register('key')} placeholder="config.example" />
@@ -276,6 +329,20 @@ function Field({ label, children, error }: FieldProps) {
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   )
+}
+
+function toUniqueOptions(values: Array<string | undefined>) {
+  const seen = new Set<string>()
+  return values
+    .filter((value): value is string => Boolean(value))
+    .filter((value) => {
+      if (seen.has(value)) {
+        return false
+      }
+      seen.add(value)
+      return true
+    })
+    .map((value) => ({ value, label: value }))
 }
 
 function normalizeValueForContentType(value: string | undefined, contentType: ContentTypeValue): string {

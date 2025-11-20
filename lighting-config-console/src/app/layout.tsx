@@ -8,7 +8,7 @@ export function AppShell() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_1fr]">
+    <div className="min-h-screen bg-background lg:pl-64">
       <SidebarNav items={NAV_ITEMS} isOpen={isOpen} onClose={() => setIsOpen(false)} />
       <div className="flex min-h-screen flex-col">
         <TopNav onMenuClick={() => setIsOpen(true)} />
