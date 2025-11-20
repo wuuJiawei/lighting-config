@@ -41,16 +41,23 @@ export function ConfigListPage() {
   const keywordFilter = filters.keyword
 
   useEffect(() => {
-    const namespaces = namespacesQuery.data
-    if (!namespaces || !namespaces.length) {
-      return
-    }
+    const namespaces = namespacesQuery.data && namespacesQuery.data.length ? namespacesQuery.data : [
+      {
+        id: 'default',
+        name: 'default',
+        owner: '-',
+        configCount: 0,
+        watchers: 0,
+        appIds: ['__global__'],
+        updatedAt: new Date().toISOString(),
+      },
+    ]
     const tenantValue = tenantFilter ?? 'default'
     const namespaceExists = namespaces.some((ns) => ns.name === namespaceFilter)
     const namespaceValue = namespaceExists ? (namespaceFilter as string) : namespaces[0].name
     const selectedNamespace = namespaces.find((ns) => ns.name === namespaceValue) ?? namespaces[0]
     const appExists = selectedNamespace.appIds.includes(appIdFilter ?? '')
-    const appValue = appExists ? (appIdFilter as string) : selectedNamespace.appIds[0] ?? 'default'
+    const appValue = appExists ? (appIdFilter as string) : selectedNamespace.appIds[0] ?? '__global__'
     if (tenantValue !== tenantFilter || namespaceValue !== namespaceFilter || appValue !== appIdFilter) {
       updateFilters({
         tenant: tenantValue,
@@ -85,7 +92,7 @@ export function ConfigListPage() {
               owner: '-',
               configCount: 0,
               watchers: 0,
-              appIds: ['default'],
+              appIds: ['__global__'],
               updatedAt: new Date().toISOString(),
             },
           ]

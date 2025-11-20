@@ -170,7 +170,10 @@ export function CreatableSelect({
               <button
                 key={option.value}
                 type="button"
-                className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent"
+                className={cn(
+                  'flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-foreground hover:bg-muted',
+                  option.value === value && 'bg-muted font-medium',
+                )}
                 onClick={() => handleSelect(option)}
               >
                 <span className="truncate">{option.label ?? option.value}</span>
@@ -180,7 +183,7 @@ export function CreatableSelect({
             {canCreate ? (
               <button
                 type="button"
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-primary hover:bg-primary/10"
+                className="flex w-full items-center gap-2 rounded-sm border border-muted-foreground/40 px-3 py-2 text-left text-sm text-foreground hover:bg-emerald-50"
                 onClick={() => handleCreate(trimmedSearch)}
               >
                 <Plus className="h-4 w-4" />

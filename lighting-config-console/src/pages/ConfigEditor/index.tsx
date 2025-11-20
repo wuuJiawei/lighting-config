@@ -44,7 +44,7 @@ type FormValues = z.infer<typeof formSchema>
 const DEFAULT_VALUES: FormValues = {
   tenant: 'default',
   namespace: 'default',
-  appId: 'default',
+  appId: '__global__',
   key: '',
   value: '',
   contentType: 'STRING',

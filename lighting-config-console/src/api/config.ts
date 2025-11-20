@@ -28,7 +28,7 @@ export interface ConfigQueryParams {
 const DEFAULT_QUERY: Required<ConfigQueryParams> = {
   tenant: 'default',
   namespace: 'default',
-  appId: 'default',
+  appId: '__global__',
   keyword: '',
 }
 

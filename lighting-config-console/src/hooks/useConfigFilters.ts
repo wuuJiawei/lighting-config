@@ -11,7 +11,7 @@ export interface ConfigFilters {
 const DEFAULT_FILTERS: Required<ConfigFilters> = {
   tenant: 'default',
   namespace: 'default',
-  appId: 'default',
+  appId: '__global__',
   keyword: '',
 }
 

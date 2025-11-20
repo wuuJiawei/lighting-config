@@ -18,7 +18,7 @@ const FALLBACK_NAMESPACE: NamespaceSummary = {
   owner: '-',
   configCount: 0,
   watchers: 0,
-  appIds: ['default'],
+  appIds: ['__global__'],
   updatedAt: new Date().toISOString(),
 }
 
@@ -30,8 +30,8 @@ export function ConfigFilterBar({ filters, namespaces, onChange, isLoading }: Co
       : availableNamespaces[0]?.name ?? FALLBACK_NAMESPACE.name
   const selectedNamespace =
     availableNamespaces.find((item) => item.name === namespaceValue) ?? availableNamespaces[0] ?? FALLBACK_NAMESPACE
-  const appOptions = selectedNamespace.appIds.length ? selectedNamespace.appIds : ['default']
-  const appValue = appOptions.includes(filters.appId ?? '') ? filters.appId ?? appOptions[0] : appOptions[0]
+  const appOptions = selectedNamespace.appIds.length ? selectedNamespace.appIds : ['__global__']
+  const appValue = appOptions.includes(filters.appId ?? '') ? filters.appId ?? appOptions[0] : appOptions[0] ?? '__global__'
 
   const handleKeywordChange = (value: string) => {
     onChange({ ...filters, keyword: value })
@@ -39,7 +39,7 @@ export function ConfigFilterBar({ filters, namespaces, onChange, isLoading }: Co
 
   const handleNamespaceChange = (value: string) => {
     const namespace = availableNamespaces.find((item) => item.name === value) ?? availableNamespaces[0] ?? FALLBACK_NAMESPACE
-    const nextApp = namespace.appIds[0] ?? 'default'
+    const nextApp = namespace.appIds[0] ?? '__global__'
     onChange({
       ...filters,
       namespace: namespace.name,
@@ -60,7 +60,7 @@ export function ConfigFilterBar({ filters, namespaces, onChange, isLoading }: Co
     onChange({
       tenant: 'default',
       namespace: firstNamespace.name,
-      appId: firstNamespace.appIds[0] ?? 'default',
+      appId: firstNamespace.appIds[0] ?? '__global__',
       keyword: '',
     })
   }
