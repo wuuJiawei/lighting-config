@@ -1,0 +1,17 @@
+server:
+  port: 8082
+
+lighting:
+  config:
+    client:
+      tenant: default
+      namespace: default
+      app-id: order-service
+      poll-interval: 1s
+      auth-token: lighting-console-token
+      server:
+        address: http://localhost:7086
+      banner-enabled: true
+logging:
+  level:
+    root: info

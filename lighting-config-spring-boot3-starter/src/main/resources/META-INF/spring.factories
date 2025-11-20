@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+io.lighting.config.spring.boot.autoconfigure.LightingClientAutoConfiguration,\
+io.lighting.config.spring.boot.autoconfigure.LightingClientListenerConfiguration

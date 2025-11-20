@@ -9,9 +9,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lighting-config-spring-boot</artifactId>
+    <artifactId>lighting-config-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
-    <name>lighting-config-spring-boot</name>
+    <name>lighting-config-spring-boot-starter</name>
 
     <dependencies>
         <dependency>

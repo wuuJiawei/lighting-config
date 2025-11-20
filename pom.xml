@@ -15,6 +15,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>2.7.18</spring.boot.version>
+        <spring.boot3.version>3.2.5</spring.boot3.version>
         <protobuf.version>3.25.3</protobuf.version>
         <caffeine.version>3.1.8</caffeine.version>
         <slf4j.version>1.7.36</slf4j.version>
@@ -58,7 +59,7 @@
     <modules>
         <module>lighting-config-core</module>
         <module>lighting-config-client</module>
-        <module>lighting-config-spring-boot</module>
+        <module>lighting-config-spring-boot-starter</module>
         <module>lighting-config-server</module>
         <module>lighting-config-embedded</module>
         <module>lighting-config-example</module>
@@ -90,5 +91,18 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <profiles>
+        <profile>
+            <id>spring-boot3</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <module>lighting-config-spring-boot3-starter</module>
+            </modules>
+        </profile>
+    </profiles>
 
 </project>
