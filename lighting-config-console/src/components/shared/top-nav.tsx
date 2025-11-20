@@ -1,12 +1,10 @@
-import { Bell, LogOut, Menu, Settings, UserRound } from 'lucide-react'
+import { LogOut, Menu, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/stores/auth'
@@ -37,9 +35,6 @@ export function TopNav({ onMenuClick }: TopNavProps) {
         <Input className="max-w-md" placeholder="搜索配置 / 命名空间" />
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" aria-label="notifications">
-          <Bell className="h-4 w-4" />
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" className="gap-2">
@@ -47,12 +42,6 @@ export function TopNav({ onMenuClick }: TopNavProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>账户</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              偏好设置
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive hover:text-destructive" onSelect={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               退出登录
