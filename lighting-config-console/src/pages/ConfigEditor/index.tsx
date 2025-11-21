@@ -1,10 +1,11 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch, type SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { fetchConfigDetail, upsertConfig } from '@/api/config'
+import { deleteConfig, fetchConfigDetail, rollbackConfig, upsertConfig } from '@/api/config'
+import type { ConfigItem } from '@/api/types'
 import { fetchNamespaces } from '@/api/namespace'
 import { PageHeader } from '@/components/shared/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +18,8 @@ import { useConfigEditorStore } from '@/stores/config-editor'
 import { toast } from 'sonner'
 import { ValueEditor } from './value-editor'
 import { CONTENT_TYPE_OPTIONS, CONTENT_TYPE_VALUES, type ContentTypeValue } from './content-types'
+import { ConfigDeleteDialog } from '@/components/shared/config-delete-dialog'
+import { ConfigRollbackDialog } from '@/components/shared/config-rollback-dialog'
 
 const formSchema = z
   .object({
@@ -57,11 +60,14 @@ export function ConfigEditorPage() {
   const isNew = !configId || configId === 'new'
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const returnTo = (location.state as { from?: { pathname: string; search?: string } } | undefined)?.from ?? {
     pathname: '/configs',
     search: '',
   }
   const { draft, setDraft, updateContent } = useConfigEditorStore()
+  const [deleteTarget, setDeleteTarget] = useState<ConfigItem | undefined>(undefined)
+  const [rollbackTarget, setRollbackTarget] = useState<ConfigItem | undefined>(undefined)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -162,7 +168,7 @@ export function ConfigEditorPage() {
     }
   }, [form, loadedConfig, setDraft, updateContent])
 
-  const mutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: (values: FormValues) =>
       upsertConfig({
         tenant: values.tenant,
@@ -177,11 +183,45 @@ export function ConfigEditorPage() {
     onSuccess: (result) => {
       toast.success('配置已保存')
       setDraft(result)
+      queryClient.setQueryData(['config', result.id], result)
       void navigate(`/configs/${result.id}`, { replace: true, state: location.state })
     },
+    onError: () => toast.error('保存失败，请稍后再试'),
   })
 
-  const onSubmit: SubmitHandler<FormValues> = (values) => mutation.mutate(values)
+  const deleteMutation = useMutation({
+    mutationFn: (targetId: string) => deleteConfig(targetId),
+    onSuccess: (_, targetId) => {
+      toast.success('配置已删除，客户端将使用默认值')
+      setDeleteTarget(undefined)
+      void queryClient.invalidateQueries({ queryKey: ['configs'] })
+      if (targetId) {
+        void queryClient.invalidateQueries({ queryKey: ['config', targetId] })
+        void queryClient.invalidateQueries({ queryKey: ['config-revisions', targetId] })
+      }
+      void navigate({
+        pathname: returnTo.pathname,
+        search: returnTo.search ?? '',
+      })
+    },
+    onError: () => toast.error('删除失败，请稍后再试'),
+  })
+
+  const rollbackMutation = useMutation({
+    mutationFn: (payload: { configId: string; targetVersion: number }) => rollbackConfig(payload),
+    onSuccess: (result, variables) => {
+      toast.success(`已回滚到 v${variables.targetVersion}，客户端将自动同步`)
+      setRollbackTarget(undefined)
+      void queryClient.invalidateQueries({ queryKey: ['configs'] })
+      if (configId) {
+        queryClient.setQueryData(['config', configId], result)
+        void queryClient.invalidateQueries({ queryKey: ['config-revisions', configId] })
+      }
+    },
+    onError: () => toast.error('回滚失败，请稍后再试'),
+  })
+
+  const onSubmit: SubmitHandler<FormValues> = (values) => saveMutation.mutate(values)
 
   const availableNamespaces = namespacesQuery.data ?? []
   const namespaceOptions = toUniqueOptions([
@@ -203,17 +243,33 @@ export function ConfigEditorPage() {
         title={isNew ? '新建配置' : `编辑配置 · ${draft?.key ?? configId}`}
         description={isNew ? '按照租户 / 命名空间 / App ID 填充配置内容。' : '在保存前确认启用状态与内容格式。'}
         actions={
-          <Button
-            variant="secondary"
-            onClick={() =>
-              void navigate({
-                pathname: returnTo.pathname,
-                search: returnTo.search ?? '',
-              })
-            }
-          >
-            返回列表
-          </Button>
+          <>
+            {!isNew ? (
+              <>
+                <Button variant="ghost" disabled={!loadedConfig} onClick={() => loadedConfig && setRollbackTarget(loadedConfig)}>
+                  回滚
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={!loadedConfig}
+                  onClick={() => loadedConfig && setDeleteTarget(loadedConfig)}
+                >
+                  删除
+                </Button>
+              </>
+            ) : null}
+            <Button
+              variant="secondary"
+              onClick={() =>
+                void navigate({
+                  pathname: returnTo.pathname,
+                  search: returnTo.search ?? '',
+                })
+              }
+            >
+              返回列表
+            </Button>
+          </>
         }
       />
 
@@ -292,8 +348,8 @@ export function ConfigEditorPage() {
               />
               启用配置
             </label>
-            <Button type="submit" disabled={mutation.isPending} className="w-full">
-              {mutation.isPending ? '保存中...' : '保存配置'}
+            <Button type="submit" disabled={saveMutation.isPending} className="w-full">
+              {saveMutation.isPending ? '保存中...' : '保存配置'}
             </Button>
           </CardContent>
         </Card>
@@ -311,6 +367,28 @@ export function ConfigEditorPage() {
           </CardContent>
         </Card>
       </form>
+      <ConfigRollbackDialog
+        config={rollbackTarget}
+        open={Boolean(rollbackTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRollbackTarget(undefined)
+          }
+        }}
+        isSubmitting={rollbackMutation.isPending}
+        onConfirm={({ config, version }) => rollbackMutation.mutate({ configId: config.id, targetVersion: version })}
+      />
+      <ConfigDeleteDialog
+        config={deleteTarget}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(undefined)
+          }
+        }}
+        isSubmitting={deleteMutation.isPending}
+        onConfirm={(config) => deleteMutation.mutate(config.id)}
+      />
     </div>
   )
 }

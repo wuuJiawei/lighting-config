@@ -6,6 +6,7 @@ import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.rest.dto.ConfigResponse;
 import io.lighting.config.server.rest.dto.ConfigUpsertRequest;
+import io.lighting.config.server.rest.dto.RollbackRequest;
 import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.server.config.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
@@ -78,6 +79,19 @@ public class ConsoleConfigController {
         Instant now = timeProvider.now();
         ConfigItem saved = applicationService.upsert(request.toConfigItem(now), "api");
         return ResponseEntity.ok(new ConfigResponse(saved));
+    }
+
+    @PostMapping("/rollback")
+    @Operation(summary = "Rollback a configuration entry to a historical version")
+    public ResponseEntity<ConfigResponse> rollback(@Valid @RequestBody RollbackRequest request) {
+        ConfigItem rolledBack = applicationService.rollback(
+                request.getTenant(),
+                request.getNamespace(),
+                request.getAppId(),
+                request.getKey(),
+                request.getTargetVersion(),
+                "api");
+        return ResponseEntity.ok(new ConfigResponse(rolledBack));
     }
 
     @DeleteMapping

@@ -67,3 +67,16 @@ export interface CacheMissAlert {
   missCount: number
   occurredAt: string
 }
+
+export interface ConfigRevision {
+  id?: string
+  tenant?: string
+  namespace?: string
+  appId?: string
+  key?: string
+  version: number
+  op: 'UPSERT' | 'DELETE'
+  operator?: string
+  diff?: string
+  createdAt: string
+}

@@ -1,7 +1,7 @@
 import { apiClient, withApiFallback } from './client'
-import { ADMIN_CONFIG_ENDPOINT } from './routes'
-import { mockConfigList, mockConfigs } from './mocks'
-import type { ConfigItem, ConfigListResponse, ConfigUpsertPayload } from './types'
+import { ADMIN_CONFIG_ENDPOINT, ADMIN_CONFIG_ROLLBACK, REVISIONS_ENDPOINT } from './routes'
+import { mockConfigList, mockConfigs, mockRevisions } from './mocks'
+import type { ConfigItem, ConfigListResponse, ConfigRevision, ConfigUpsertPayload } from './types'
 import { decodeConfigId, deriveConfigId } from '@/utils/config-id'
 
 interface ServerConfigResponse {
@@ -16,6 +16,19 @@ interface ServerConfigResponse {
   enabled: boolean
   version: number
   updatedAt: string
+}
+
+interface ServerRevisionResponse {
+  id?: string
+  tenant?: string
+  namespace?: string
+  appId?: string
+  key?: string
+  version: number
+  op: 'UPSERT' | 'DELETE'
+  operator?: string
+  diff?: string
+  createdAt: string
 }
 
 export interface ConfigQueryParams {
@@ -100,6 +113,53 @@ export async function upsertConfig(payload: ConfigUpsertPayload): Promise<Config
   )
 }
 
+export async function deleteConfig(configId: string): Promise<void> {
+  const coordinate = decodeConfigId(configId)
+  return withApiFallback(
+    async () => {
+      await apiClient.delete<void>(ADMIN_CONFIG_ENDPOINT, { params: coordinate })
+    },
+    undefined,
+    'config:delete',
+  )
+}
+
+export async function fetchConfigRevisions(configId: string): Promise<ConfigRevision[]> {
+  const coordinate = decodeConfigId(configId)
+  return withApiFallback(
+    async () => {
+      const { data } = await apiClient.get<ServerRevisionResponse[]>(REVISIONS_ENDPOINT, { params: coordinate })
+      return data.map(mapRevisionResponse).sort((a, b) => b.version - a.version)
+    },
+    mockRevisions,
+    'config:revisions',
+  )
+}
+
+export interface RollbackPayload {
+  configId: string
+  targetVersion: number
+}
+
+export async function rollbackConfig(payload: RollbackPayload): Promise<ConfigItem> {
+  const coordinate = decodeConfigId(payload.configId)
+  return withApiFallback(
+    async () => {
+      const { data } = await apiClient.post<ServerConfigResponse>(ADMIN_CONFIG_ROLLBACK, {
+        ...coordinate,
+        targetVersion: payload.targetVersion,
+      })
+      return mapConfigResponse(data)
+    },
+    mapConfigResponse({
+      ...(mockConfigs.find((item) => item.id === payload.configId) ?? mockConfigs[0]),
+      version: payload.targetVersion,
+      updatedAt: new Date().toISOString(),
+    }),
+    'config:rollback',
+  )
+}
+
 function mapConfigResponse(payload: ServerConfigResponse): ConfigItem {
   return {
     id: payload.id ?? deriveConfigId(payload),
@@ -113,5 +173,20 @@ function mapConfigResponse(payload: ServerConfigResponse): ConfigItem {
     enabled: payload.enabled,
     version: payload.version,
     updatedAt: payload.updatedAt,
+  }
+}
+
+function mapRevisionResponse(payload: ServerRevisionResponse): ConfigRevision {
+  return {
+    id: payload.id,
+    tenant: payload.tenant,
+    namespace: payload.namespace,
+    appId: payload.appId,
+    key: payload.key,
+    version: payload.version,
+    op: payload.op,
+    operator: payload.operator,
+    diff: payload.diff,
+    createdAt: payload.createdAt,
   }
 }

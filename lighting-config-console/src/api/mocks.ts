@@ -3,6 +3,7 @@ import type {
   CacheMissAlert,
   ConfigItem,
   ConfigListResponse,
+  ConfigRevision,
   DashboardStat,
   NamespaceSummary,
 } from './types'
@@ -121,5 +122,44 @@ export const mockCacheMissAlerts: CacheMissAlert[] = [
     selector: '*',
     missCount: 5,
     occurredAt: new Date(Date.now() - 9_000_00).toISOString(),
+  },
+]
+
+export const mockRevisions: ConfigRevision[] = [
+  {
+    id: 'rev-001',
+    tenant: 'default',
+    namespace: 'default',
+    appId: 'lighting-console',
+    key: 'feature.toggle.push',
+    version: 17,
+    op: 'UPSERT',
+    operator: 'ops-bot',
+    diff: '开启推送',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'rev-002',
+    tenant: 'default',
+    namespace: 'default',
+    appId: 'lighting-console',
+    key: 'feature.toggle.push',
+    version: 16,
+    op: 'UPSERT',
+    operator: 'qa',
+    diff: '灰度开启',
+    createdAt: new Date(Date.now() - 86_400_000).toISOString(),
+  },
+  {
+    id: 'rev-003',
+    tenant: 'default',
+    namespace: 'default',
+    appId: 'lighting-console',
+    key: 'feature.toggle.push',
+    version: 15,
+    op: 'DELETE',
+    operator: 'ops-bot',
+    diff: '清理默认值',
+    createdAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
   },
 ]

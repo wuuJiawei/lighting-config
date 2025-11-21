@@ -3,6 +3,7 @@ package io.lighting.config.server.service;
 import io.lighting.config.core.dto.ConfigSelector;
 import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigItem;
+import io.lighting.config.core.model.Revision;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,10 @@ public interface ConfigApplicationService {
     ConfigItem upsert(ConfigItem item, String operator);
 
     void delete(String tenant, String namespace, String appId, String key, String operator);
+
+    List<Revision> listRevisions(String tenant, String namespace, String appId, String key);
+
+    ConfigItem rollback(String tenant, String namespace, String appId, String key, long targetVersion, String operator);
 
     default List<ConfigItem> listByPrefix(String tenant, String namespace, String appId, String prefix) {
         PullQuery query = PullQuery.builder()

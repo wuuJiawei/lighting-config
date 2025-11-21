@@ -9,6 +9,7 @@ import io.lighting.config.core.dto.ConfigChangeEvent;
 import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.core.model.ConfigItem;
+import io.lighting.config.core.model.ContentType;
 import io.lighting.config.core.model.Revision;
 import io.lighting.config.core.model.RevisionOperation;
 import io.lighting.config.core.util.TimeProvider;
@@ -20,6 +21,7 @@ import io.lighting.config.server.repository.RevisionRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 public class DefaultConfigApplicationService implements ConfigApplicationService {
 
@@ -167,5 +169,71 @@ public class DefaultConfigApplicationService implements ConfigApplicationService
         node.put("version", item.getVersion());
         node.set("labels", objectMapper.valueToTree(item.getLabels()));
         return node;
+    }
+
+    @Override
+    public List<Revision> listRevisions(String tenant, String namespace, String appId, String key) {
+        return revisionRepository.listByCoordinate(tenant, namespace, appId, key);
+    }
+
+    @Override
+    public ConfigItem rollback(String tenant, String namespace, String appId, String key, long targetVersion, String operator) {
+        Revision revision = revisionRepository.findByCoordinateAndVersion(tenant, namespace, appId, key, targetVersion)
+                .orElseThrow(() -> new IllegalArgumentException("Revision not found for target version " + targetVersion));
+        ConfigItem targetSnapshot = toConfigFromRevision(revision);
+        if (targetSnapshot == null) {
+            throw new IllegalStateException("Revision diff missing snapshot for rollback");
+        }
+        ConfigItem rollbackSource = targetSnapshot.toBuilder()
+                .tenant(tenant)
+                .namespace(namespace)
+                .appId(appId)
+                .key(key)
+                .updatedAt(nowInstant())
+                .build();
+        ConfigItem persisted = upsert(rollbackSource, operator);
+        return persisted;
+    }
+
+    private ConfigItem toConfigFromRevision(Revision revision) {
+        String diff = revision.getDiff();
+        if (diff == null || diff.isEmpty()) {
+            return null;
+        }
+        try {
+            ObjectNode root = objectMapper.readValue(diff, ObjectNode.class);
+            ObjectNode snapshot = chooseSnapshot(revision.getOperation(), root);
+            if (snapshot == null) {
+                return null;
+            }
+            return ConfigItem.builder()
+                    .tenant(revision.getCoordinate().getTenant())
+                    .namespace(revision.getCoordinate().getNamespace())
+                    .appId(revision.getCoordinate().getAppId())
+                    .key(revision.getCoordinate().getKey())
+                    .contentType(ContentType.fromAlias(snapshot.path("contentType").asText(ContentType.STRING.name())))
+                    .value(snapshot.path("value").asText(""))
+                    .labels(objectMapper.convertValue(snapshot.path("labels"), objectMapper.getTypeFactory().constructMapType(Map.class, String.class, String.class)))
+                    .enabled(snapshot.path("enabled").asBoolean(true))
+                    .version(snapshot.path("version").asLong(revision.getVersion()))
+                    .createdAt(nowInstant())
+                    .updatedAt(nowInstant())
+                    .build();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to parse revision diff", e);
+        }
+    }
+
+    private ObjectNode chooseSnapshot(RevisionOperation operation, ObjectNode root) {
+        if (operation == RevisionOperation.DELETE && root.has("before")) {
+            return (ObjectNode) root.get("before");
+        }
+        if (root.has("after")) {
+            return (ObjectNode) root.get("after");
+        }
+        if (root.has("before")) {
+            return (ObjectNode) root.get("before");
+        }
+        return null;
     }
 }

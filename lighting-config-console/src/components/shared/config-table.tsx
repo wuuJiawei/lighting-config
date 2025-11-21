@@ -1,14 +1,16 @@
-import type { ConfigItem, ConfigStatus } from '@/api/types'
+import { useState } from 'react'
+import type { ConfigItem } from '@/api/types'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { StatusBadge } from '@/components/shared/status-badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDateTime } from '@/utils/date'
-import { upsertConfig } from '@/api/config'
+import { deleteConfig, rollbackConfig, upsertConfig } from '@/api/config'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import { ConfigDeleteDialog } from '@/components/shared/config-delete-dialog'
+import { ConfigRollbackDialog } from '@/components/shared/config-rollback-dialog'
 
 interface ConfigTableProps {
   items: ConfigItem[]
@@ -24,8 +26,10 @@ interface ConfigTableProps {
 export function ConfigTable({ items, isLoading, listState }: ConfigTableProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [deleteTarget, setDeleteTarget] = useState<ConfigItem | null>(null)
+  const [rollbackTarget, setRollbackTarget] = useState<ConfigItem | null>(null)
   const skeletonRows = Array.from({ length: 5 }, (_, index) => index)
-  const mutation = useMutation({
+  const toggleMutation = useMutation({
     mutationFn: (item: ConfigItem) =>
       upsertConfig({
         tenant: item.tenant,
@@ -42,6 +46,32 @@ export function ConfigTable({ items, isLoading, listState }: ConfigTableProps) {
       toast.success('已更新配置状态')
     },
     onError: () => toast.error('更新状态失败'),
+  })
+  const deleteMutation = useMutation({
+    mutationFn: (configId: string) => deleteConfig(configId),
+    onSuccess: (_, configId) => {
+      toast.success('配置已删除，客户端将回落到默认值')
+      setDeleteTarget(null)
+      void queryClient.invalidateQueries({ queryKey: ['configs'] })
+      if (configId) {
+        void queryClient.invalidateQueries({ queryKey: ['config', configId] })
+        void queryClient.invalidateQueries({ queryKey: ['config-revisions', configId] })
+      }
+    },
+    onError: () => toast.error('删除失败，请稍后再试'),
+  })
+  const rollbackMutation = useMutation({
+    mutationFn: (payload: { configId: string; targetVersion: number }) => rollbackConfig(payload),
+    onSuccess: (_, variables) => {
+      toast.success(`已回滚到 v${variables.targetVersion}，客户端将自动同步`)
+      setRollbackTarget(null)
+      void queryClient.invalidateQueries({ queryKey: ['configs'] })
+      if (variables.configId) {
+        void queryClient.invalidateQueries({ queryKey: ['config', variables.configId] })
+        void queryClient.invalidateQueries({ queryKey: ['config-revisions', variables.configId] })
+      }
+    },
+    onError: () => toast.error('回滚失败，请稍后再试'),
   })
 
   if (!items.length && !isLoading) {
@@ -95,31 +125,62 @@ export function ConfigTable({ items, isLoading, listState }: ConfigTableProps) {
                 <TableCell>{row.appId}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <ToggleSwitch checked={row.enabled} disabled={mutation.isPending} onChange={() => mutation.mutate(row)} />
+                    <ToggleSwitch
+                      checked={row.enabled}
+                      disabled={toggleMutation.isPending}
+                      onChange={() => toggleMutation.mutate(row)}
+                    />
                   </div>
                 </TableCell>
                 <TableCell>v{row.version}</TableCell>
                 <TableCell>{formatDateTime(row.updatedAt)}</TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => void navigate(`/configs/${row.id}`, { state: listState })}
-                  >
-                    编辑
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => void navigate(`/configs/${row.id}`, { state: listState })}>
+                      编辑
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setRollbackTarget(row)}>
+                      回滚
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(row)}
+                    >
+                      删除
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             )
           })}
         </TableBody>
       </Table>
+      <ConfigRollbackDialog
+        config={rollbackTarget}
+        open={Boolean(rollbackTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRollbackTarget(null)
+          }
+        }}
+        isSubmitting={rollbackMutation.isPending}
+        onConfirm={({ config, version }) => rollbackMutation.mutate({ configId: config.id, targetVersion: version })}
+      />
+      <ConfigDeleteDialog
+        config={deleteTarget}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+          }
+        }}
+        isSubmitting={deleteMutation.isPending}
+        onConfirm={(config) => deleteMutation.mutate(config.id)}
+      />
     </div>
   )
-}
-
-function toStatus(item: ConfigItem): ConfigStatus {
-  return item.enabled ? 'ACTIVE' : 'DISABLED'
 }
 
 interface ToggleSwitchProps {
