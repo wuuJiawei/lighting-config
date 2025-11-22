@@ -13,6 +13,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import static io.lighting.config.server.web.ApiConstants.API_BASE_PATH;
+import static io.lighting.config.server.web.ApiConstants.AUTH_PATH;
+import static io.lighting.config.server.web.ApiConstants.DOCS_PATH;
+import static io.lighting.config.server.web.ApiConstants.HEADER_AUTHORIZATION_BEARER_PREFIX;
+import static io.lighting.config.server.web.ApiConstants.HEADER_TOKEN;
+import static io.lighting.config.server.web.ApiConstants.OPENAPI_PATH;
+import static io.lighting.config.server.web.ApiConstants.SWAGGER_UI_SEGMENT;
+import static io.lighting.config.server.web.ApiConstants.UNAUTHORIZED_MESSAGE;
+
 public class AuthTokenFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(AuthTokenFilter.class);
@@ -31,11 +40,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             return;
         }
         String path = request.getRequestURI();
-        if (!path.startsWith("/lighting-config/api")
-                || path.startsWith("/lighting-config/api/auth")
-                || path.startsWith("/lighting-config/api/openapi")
-                || path.startsWith("/lighting-config/api/docs")
-                || path.contains("swagger-ui")
+        if (!path.startsWith(API_BASE_PATH)
+                || path.startsWith(AUTH_PATH)
+                || path.startsWith(OPENAPI_PATH)
+                || path.startsWith(DOCS_PATH)
+                || path.contains(SWAGGER_UI_SEGMENT)
         ) {
             filterChain.doFilter(request, response);
             return;
@@ -47,15 +56,15 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         }
         log.warn("Rejecting {} {} due to missing/invalid auth token", request.getMethod(), path);
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.getWriter().write("Unauthorized");
+        response.getWriter().write(UNAUTHORIZED_MESSAGE);
     }
 
     private String resolveToken(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
+        if (header != null && header.startsWith(HEADER_AUTHORIZATION_BEARER_PREFIX)) {
+            return header.substring(HEADER_AUTHORIZATION_BEARER_PREFIX.length());
         }
-        String fallback = request.getHeader("X-Lighting-Token");
+        String fallback = request.getHeader(HEADER_TOKEN);
         if (fallback != null && !fallback.isBlank()) {
             return fallback;
         }

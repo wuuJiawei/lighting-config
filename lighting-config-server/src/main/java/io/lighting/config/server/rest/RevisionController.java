@@ -17,8 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_APP_ID;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_NAMESPACE;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_TENANT;
+import static io.lighting.config.server.web.ApiConstants.REVISIONS_PATH;
+
 @RestController
-@RequestMapping("/lighting-config/api/revisions")
+@RequestMapping(REVISIONS_PATH)
 @Validated
 @Tag(name = "Revisions")
 @SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
@@ -34,11 +39,11 @@ public class RevisionController {
     @Operation(summary = "List revisions for a configuration")
     public ResponseEntity<List<RevisionResponse>> list(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant,
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
             @Parameter(description = "Namespace identifier", example = "default")
-            @RequestParam(defaultValue = "default") String namespace,
+            @RequestParam(defaultValue = DEFAULT_NAMESPACE) String namespace,
             @Parameter(description = "App ID / scope", example = "default")
-            @RequestParam(name = "appId", defaultValue = "default") String appId,
+            @RequestParam(name = "appId", defaultValue = DEFAULT_APP_ID) String appId,
             @Parameter(description = "Config key", required = true)
             @RequestParam String key) {
         List<RevisionResponse> payload = applicationService.listRevisions(tenant, namespace, appId, key).stream()

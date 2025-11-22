@@ -28,8 +28,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.lighting.config.server.web.ApiConstants.ADMIN_CONFIG_PATH;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_ACTOR;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_APP_ID;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_NAMESPACE;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_TENANT;
+
 @RestController
-@RequestMapping("/lighting-config/api/admin/config")
+@RequestMapping(ADMIN_CONFIG_PATH)
 @Validated
 @Tag(name = "Admin Config")
 @SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
@@ -47,11 +53,11 @@ public class ConsoleConfigController {
     @Operation(summary = "Query configuration items", description = "Supports exact key lookup or prefix scanning.")
     public ResponseEntity<List<ConfigResponse>> query(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant,
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
             @Parameter(description = "Namespace identifier", example = "default")
-            @RequestParam(defaultValue = "default") String namespace,
+            @RequestParam(defaultValue = DEFAULT_NAMESPACE) String namespace,
             @Parameter(description = "App ID / scope", example = "default")
-            @RequestParam(name = "appId", defaultValue = "default") String appId,
+            @RequestParam(name = "appId", defaultValue = DEFAULT_APP_ID) String appId,
             @Parameter(description = "Exact key to fetch") @RequestParam(required = false) String key,
             @Parameter(description = "Prefix to filter keys") @RequestParam(required = false) String prefix) {
         if (key != null && !key.isEmpty()) {
@@ -77,7 +83,7 @@ public class ConsoleConfigController {
     @Operation(summary = "Create or update a configuration entry")
     public ResponseEntity<ConfigResponse> upsert(@Valid @RequestBody ConfigUpsertRequest request) {
         Instant now = timeProvider.now();
-        ConfigItem saved = applicationService.upsert(request.toConfigItem(now), "api");
+        ConfigItem saved = applicationService.upsert(request.toConfigItem(now), DEFAULT_ACTOR);
         return ResponseEntity.ok(new ConfigResponse(saved));
     }
 
@@ -90,18 +96,18 @@ public class ConsoleConfigController {
                 request.getAppId(),
                 request.getKey(),
                 request.getTargetVersion(),
-                "api");
+                DEFAULT_ACTOR);
         return ResponseEntity.ok(new ConfigResponse(rolledBack));
     }
 
     @DeleteMapping
     @Operation(summary = "Delete a configuration entry")
     public ResponseEntity<Void> delete(
-            @RequestParam(defaultValue = "default") String tenant,
-            @RequestParam(defaultValue = "default") String namespace,
-            @RequestParam(name = "appId", defaultValue = "default") String appId,
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
+            @RequestParam(defaultValue = DEFAULT_NAMESPACE) String namespace,
+            @RequestParam(name = "appId", defaultValue = DEFAULT_APP_ID) String appId,
             @RequestParam String key) {
-        applicationService.delete(tenant, namespace, appId, key, "api");
+        applicationService.delete(tenant, namespace, appId, key, DEFAULT_ACTOR);
         return ResponseEntity.noContent().build();
     }
 }

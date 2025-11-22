@@ -20,8 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Collections;
 import java.util.List;
 
+import static io.lighting.config.server.web.ApiConstants.ADMIN_CONSOLE_PATH;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_TENANT;
+
 @RestController
-@RequestMapping("/lighting-config/api/admin/console")
+@RequestMapping(ADMIN_CONSOLE_PATH)
 @Tag(name = "Admin Console")
 @SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
 public class ConsoleQueryController {
@@ -36,7 +39,7 @@ public class ConsoleQueryController {
     @Operation(summary = "Dashboard stats for a tenant")
     public ResponseEntity<List<DashboardStatView>> stats(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant) {
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());
@@ -48,7 +51,7 @@ public class ConsoleQueryController {
     @Operation(summary = "List namespaces for a tenant")
     public ResponseEntity<List<NamespaceSummaryResponse>> namespaces(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant) {
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
         if (service == null) {
             return ResponseEntity.ok(Collections.emptyList());
@@ -60,7 +63,7 @@ public class ConsoleQueryController {
     @Operation(summary = "Recent configuration audit records")
     public ResponseEntity<List<AuditRecordResponse>> audit(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant,
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
             @Parameter(description = "Max results (1-100)", example = "10")
             @RequestParam(defaultValue = "10") int limit) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();
@@ -75,7 +78,7 @@ public class ConsoleQueryController {
     @Operation(summary = "Recent cache miss alerts")
     public ResponseEntity<List<CacheMissAlertResponse>> cacheMiss(
             @Parameter(description = "Tenant identifier", example = "default")
-            @RequestParam(defaultValue = "default") String tenant,
+            @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
             @Parameter(description = "Max results (1-100)", example = "20")
             @RequestParam(defaultValue = "20") int limit) {
         ConsoleQueryService service = consoleQueryService.getIfAvailable();

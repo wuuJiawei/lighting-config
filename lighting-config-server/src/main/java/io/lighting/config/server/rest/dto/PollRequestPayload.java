@@ -6,11 +6,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_APP_ID;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_NAMESPACE;
+import static io.lighting.config.server.web.ApiConstants.DEFAULT_TENANT;
+
 public class PollRequestPayload {
 
-    private String tenant = "default";
-    private String namespace = "default";
-    private String appId = "default";
+    private String tenant = DEFAULT_TENANT;
+    private String namespace = DEFAULT_NAMESPACE;
+    private String appId = DEFAULT_APP_ID;
     private Map<String, String> labels = new LinkedHashMap<>();
     private Map<String, String> metadata = new LinkedHashMap<>();
     private long lastVersion;

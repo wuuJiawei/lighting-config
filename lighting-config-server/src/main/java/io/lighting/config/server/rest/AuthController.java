@@ -16,8 +16,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.validation.Valid;
 
+import static io.lighting.config.server.web.ApiConstants.AUTH_PATH;
+
 @RestController
-@RequestMapping("/lighting-config/api/auth")
+@RequestMapping(AUTH_PATH)
 @Validated
 @Tag(name = "Authentication")
 public class AuthController {

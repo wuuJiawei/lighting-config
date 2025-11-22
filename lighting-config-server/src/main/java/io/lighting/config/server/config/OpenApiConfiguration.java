@@ -11,6 +11,12 @@ import org.springdoc.core.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import static io.lighting.config.server.web.ApiConstants.API_PATH_PATTERN;
+import static io.lighting.config.server.web.ApiConstants.BEARER_FORMAT;
+import static io.lighting.config.server.web.ApiConstants.BEARER_TOKEN_TYPE;
+import static io.lighting.config.server.web.ApiConstants.HEADER_AUTHORIZATION_BEARER_PREFIX;
+import static io.lighting.config.server.web.ApiConstants.HEADER_TOKEN;
+
 /**
  * OpenAPI specification + Swagger UI configuration to expose the admin/client endpoints documented in docs/系统设计文档.md.
  */
@@ -31,9 +37,10 @@ public class OpenApiConfiguration {
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("TOKEN")
-                                .description("Reuse the lighting-config auth token via 'Authorization: Bearer <token>' or 'X-Lighting-Token' header.")))
+                                .scheme(BEARER_TOKEN_TYPE)
+                                .bearerFormat(BEARER_FORMAT)
+                                .description(String.format("Reuse the lighting-config auth token via 'Authorization: %s<token>' or '%s' header.",
+                                        HEADER_AUTHORIZATION_BEARER_PREFIX, HEADER_TOKEN))))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME));
     }
 
@@ -41,7 +48,7 @@ public class OpenApiConfiguration {
     public GroupedOpenApi lightingApiGroup() {
         return GroupedOpenApi.builder()
                 .group("lighting-config")
-                .pathsToMatch("/lighting-config/api/**")
+                .pathsToMatch(API_PATH_PATTERN)
                 .build();
     }
 }

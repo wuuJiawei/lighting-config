@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import static io.lighting.config.server.web.ApiConstants.API_BASE_PATH;
+
 /**
  * REST endpoint providing polling responses for clients adopting the HTTP polling transport.
  */
 @RestController
-@RequestMapping("/lighting-config/api")
+@RequestMapping(API_BASE_PATH)
 @Tag(name = "Client Polling")
 @SecurityRequirement(name = OpenApiConfiguration.SECURITY_SCHEME)
 public class PollController {
