@@ -221,7 +221,13 @@ export function ConfigEditorPage() {
     onError: () => toast.error('回滚失败，请稍后再试'),
   })
 
-  const onSubmit: SubmitHandler<FormValues> = (values) => saveMutation.mutate(values)
+  const onSubmit: SubmitHandler<FormValues> = (values) => {
+    if (!isNew && loadedConfig && isSameAsExisting(values, loadedConfig, draft?.labels)) {
+      toast.info('未检测到变更，已跳过保存')
+      return
+    }
+    saveMutation.mutate(values)
+  }
 
   const availableNamespaces = namespacesQuery.data ?? []
   const namespaceOptions = toUniqueOptions([
@@ -499,6 +505,26 @@ function validateValueForContentType(value: string, contentType: ContentTypeValu
     default:
       return null
   }
+}
+
+function isSameAsExisting(values: FormValues, existing: ConfigItem, labels?: Record<string, string>): boolean {
+  const safeContentType: ContentTypeValue = isContentTypeValue(existing.contentType) ? existing.contentType : 'STRING'
+  const normalizedExistingValue = normalizeValueForContentType(existing.value, safeContentType)
+  const currentLabels = labels ?? existing.labels ?? {}
+  const originalLabels = existing.labels ?? {}
+
+  const labelsEqual = JSON.stringify(currentLabels) === JSON.stringify(originalLabels)
+
+  return (
+    values.tenant === existing.tenant &&
+    values.namespace === existing.namespace &&
+    values.appId === existing.appId &&
+    values.key === existing.key &&
+    values.contentType === safeContentType &&
+    values.enabled === existing.enabled &&
+    values.value === normalizedExistingValue &&
+    labelsEqual
+  )
 }
 
 function isBooleanLiteral(value: string) {
