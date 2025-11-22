@@ -12,6 +12,7 @@
     <artifactId>lighting-config-spring-boot3-starter</artifactId>
     <packaging>jar</packaging>
     <name>lighting-config-spring-boot3-starter</name>
+    <description>Spring Boot 3.x starter for lighting-config client auto-configuration.</description>
 
     <properties>
         <java.version>17</java.version>

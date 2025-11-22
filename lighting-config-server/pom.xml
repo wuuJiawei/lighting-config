@@ -12,6 +12,7 @@
     <artifactId>lighting-config-server</artifactId>
     <packaging>jar</packaging>
     <name>lighting-config-server</name>
+    <description>Standalone lighting-config server with HTTP polling APIs, admin endpoints, and JDBC storage.</description>
 
     <dependencies>
         <dependency>

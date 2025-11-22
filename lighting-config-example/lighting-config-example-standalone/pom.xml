@@ -11,6 +11,7 @@
 
     <artifactId>lighting-config-example-standalone</artifactId>
     <name>lighting-config-example-standalone</name>
+    <description>Standalone server demo for lighting-config with minimal REST CRUD.</description>
 
     <dependencies>
         <dependency>

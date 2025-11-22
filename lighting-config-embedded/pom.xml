@@ -12,6 +12,7 @@
     <artifactId>lighting-config-embedded</artifactId>
     <packaging>jar</packaging>
     <name>lighting-config-embedded</name>
+    <description>Embedded packaging of lighting-config server/client for in-JVM configuration delivery.</description>
 
     <dependencies>
         <dependency>

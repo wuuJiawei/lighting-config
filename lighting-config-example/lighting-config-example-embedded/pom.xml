@@ -11,6 +11,7 @@
 
     <artifactId>lighting-config-example-embedded</artifactId>
     <name>lighting-config-example-embedded</name>
+    <description>Embedded demo showing lighting-config running inside the application process.</description>
 
     <dependencies>
         <dependency>

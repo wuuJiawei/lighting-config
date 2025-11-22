@@ -12,6 +12,7 @@
     <artifactId>lighting-config-core</artifactId>
     <packaging>jar</packaging>
     <name>lighting-config-core</name>
+    <description>Core models, protocol definitions, and SPI contracts for lighting-config.</description>
 
     <dependencies>
         <dependency>

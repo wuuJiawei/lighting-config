@@ -12,6 +12,7 @@
     <artifactId>lighting-config-example</artifactId>
     <packaging>pom</packaging>
     <name>lighting-config-example</name>
+    <description>Example projects for lighting-config, covering embedded, standalone server, and client usage.</description>
 
     <modules>
         <module>lighting-config-example-embedded</module>

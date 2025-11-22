@@ -11,6 +11,7 @@
 
     <artifactId>lighting-config-example-client</artifactId>
     <name>lighting-config-example-client</name>
+    <description>Spring Boot 2.x client demo consuming lighting-config via starter.</description>
 
     <dependencies>
         <dependency>
