@@ -78,5 +78,6 @@ export interface ConfigRevision {
   op: 'UPSERT' | 'DELETE'
   operator?: string
   diff?: string
+  value?: string
   createdAt: string
 }

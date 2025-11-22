@@ -28,6 +28,7 @@ interface ServerRevisionResponse {
   op: 'UPSERT' | 'DELETE'
   operator?: string
   diff?: string
+  value?: string
   createdAt: string
 }
 
@@ -187,6 +188,7 @@ function mapRevisionResponse(payload: ServerRevisionResponse): ConfigRevision {
     op: payload.op,
     operator: payload.operator,
     diff: payload.diff,
+    value: payload.value,
     createdAt: payload.createdAt,
   }
 }

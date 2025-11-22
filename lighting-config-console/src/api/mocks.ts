@@ -136,6 +136,7 @@ export const mockRevisions: ConfigRevision[] = [
     op: 'UPSERT',
     operator: 'ops-bot',
     diff: '开启推送',
+    value: '{"feature.toggle.push":true,"percent":100}',
     createdAt: new Date().toISOString(),
   },
   {
@@ -148,6 +149,7 @@ export const mockRevisions: ConfigRevision[] = [
     op: 'UPSERT',
     operator: 'qa',
     diff: '灰度开启',
+    value: '{"feature.toggle.push":true,"percent":50}',
     createdAt: new Date(Date.now() - 86_400_000).toISOString(),
   },
   {
@@ -160,6 +162,7 @@ export const mockRevisions: ConfigRevision[] = [
     op: 'DELETE',
     operator: 'ops-bot',
     diff: '清理默认值',
+    value: '',
     createdAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
   },
 ]
