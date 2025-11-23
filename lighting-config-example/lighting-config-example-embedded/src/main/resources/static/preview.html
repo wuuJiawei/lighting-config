@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embedded Config Preview</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; color: #1f2933; }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    .card { border: 1px solid #d5d7da; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    label { display: block; margin-top: 8px; font-weight: 600; }
+    input, select, button { margin-top: 4px; padding: 8px; font-size: 14px; }
+    button { cursor: pointer; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row .field { flex: 1 1 180px; min-width: 180px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    th { text-align: left; background: #f8fafc; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .actions { display: flex; gap: 8px; margin-top: 8px; }
+    .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #e0f2fe; color: #0b79d0; font-size: 12px; }
+    #toast { position: fixed; top: 12px; right: 12px; background: #111827; color: #fff; padding: 10px 14px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.2s ease; }
+  </style>
+</head>
+<body>
+  <h1>Embedded Config Preview</h1>
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="tenant">Tenant</label>
+        <input id="tenant" value="default">
+      </div>
+      <div class="field">
+        <label for="namespace">Namespace</label>
+        <input id="namespace" value="default">
+      </div>
+      <div class="field">
+        <label for="appId">App ID</label>
+        <input id="appId" value="demo-client">
+      </div>
+      <div class="field">
+        <label for="prefix">Key Prefix (optional)</label>
+        <input id="prefix" placeholder="e.g. feature.">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="loadBtn">Load Configs</button>
+    </div>
+    <div class="muted">Uses /embedded/config for CRUD. Auth must allow this endpoint.</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;">Create / Update</h2>
+    <div class="row">
+      <div class="field">
+        <label for="key">Key</label>
+        <input id="key" placeholder="config.key">
+      </div>
+      <div class="field">
+        <label for="value">Value</label>
+        <input id="value" placeholder="value">
+      </div>
+      <div class="field">
+        <label for="contentType">Content Type</label>
+        <select id="contentType">
+          <option value="TEXT" selected>TEXT</option>
+          <option value="JSON">JSON</option>
+          <option value="YAML">YAML</option>
+          <option value="PROPERTIES">PROPERTIES</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="upsertBtn">Upsert</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px;">Current Items</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 30%;">Key</th>
+          <th style="width: 40%;">Value</th>
+          <th style="width: 10%;">Type</th>
+          <th style="width: 20%;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="4" class="muted">No data loaded yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const qs = id => document.getElementById(id);
+    const showToast = (msg, isError = false) => {
+      const el = qs('toast');
+      el.textContent = msg;
+      el.style.background = isError ? '#b91c1c' : '#111827';
+      el.style.opacity = 1;
+      setTimeout(() => { el.style.opacity = 0; }, 2000);
+    };
+
+    const buildQuery = () => {
+      const tenant = qs('tenant').value || 'default';
+      const namespace = qs('namespace').value || 'default';
+      const appId = qs('appId').value || 'demo-client';
+      const prefix = qs('prefix').value;
+      const params = new URLSearchParams({ tenant, namespace, appId });
+      if (prefix) params.append('prefix', prefix);
+      return { tenant, namespace, appId, query: params.toString() };
+    };
+
+    const renderRows = items => {
+      const body = qs('tableBody');
+      body.innerHTML = '';
+      if (!items || items.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="muted">No items.</td></tr>';
+        return;
+      }
+      for (const item of items) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.key}</td>
+          <td><pre style="margin:0; white-space:pre-wrap;">${item.value ?? ''}</pre></td>
+          <td><span class="tag">${item.contentType || 'TEXT'}</span></td>
+          <td>
+            <button data-key="${item.key}" class="deleteBtn">Delete</button>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+      body.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const { tenant, namespace, appId } = buildQuery();
+          const key = btn.getAttribute('data-key');
+          await deleteItem({ tenant, namespace, appId, key });
+          await loadConfigs();
+        });
+      });
+    };
+
+    const loadConfigs = async () => {
+      const { query } = buildQuery();
+      const res = await fetch(`/embedded/config?${query}`);
+      if (!res.ok) {
+        showToast('Load failed: ' + res.status, true);
+        return;
+      }
+      const data = await res.json();
+      renderRows(data);
+      showToast('Loaded ' + data.length + ' item(s)');
+    };
+
+    const upsert = async () => {
+      const { tenant, namespace, appId } = buildQuery();
+      const key = qs('key').value;
+      const value = qs('value').value;
+      const contentType = qs('contentType').value || 'TEXT';
+      if (!key) {
+        showToast('Key is required', true);
+        return;
+      }
+      const res = await fetch('/embedded/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant, namespace, appId, key, value, contentType })
+      });
+      if (!res.ok) {
+        showToast('Upsert failed: ' + res.status, true);
+        return;
+      }
+      showToast('Saved');
+      await loadConfigs();
+    };
+
+    const deleteItem = async ({ tenant, namespace, appId, key }) => {
+      const params = new URLSearchParams({ tenant, namespace, appId, key });
+      const res = await fetch('/embedded/config?' + params.toString(), { method: 'DELETE' });
+      if (!res.ok) {
+        showToast('Delete failed: ' + res.status, true);
+      } else {
+        showToast('Deleted ' + key);
+      }
+    };
+
+    qs('loadBtn').addEventListener('click', loadConfigs);
+    qs('upsertBtn').addEventListener('click', upsert);
+  </script>
+</body>
+</html>

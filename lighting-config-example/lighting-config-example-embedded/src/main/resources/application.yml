@@ -15,6 +15,11 @@ spring:
 lighting:
   config:
     mode: embedded
+    auth:
+      enabled: true
+      mode: token
+      options:
+        tokens: lighting-config-token
     embedded:
       storage:
         type: FILE
