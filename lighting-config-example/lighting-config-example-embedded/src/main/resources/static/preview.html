@@ -92,6 +92,25 @@
     </table>
   </div>
 
+  <div class="card">
+    <h2 style="margin:0 0 8px;">LightingValue &amp; LightingProperties</h2>
+    <div class="actions">
+      <button id="loadValuesBtn">Load @LightingValue Samples</button>
+      <button id="loadPropsBtn">Load @LightingProperties Sample</button>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div class="field" style="flex:1 1 300px; min-width:300px;">
+        <label>LightingValue payload</label>
+        <pre id="valuesBox" style="background:#f8fafc; padding:10px; border-radius:6px; min-height:80px; white-space:pre-wrap; margin:0;"></pre>
+      </div>
+      <div class="field" style="flex:1 1 300px; min-width:300px;">
+        <label>LightingProperties payload</label>
+        <pre id="propsBox" style="background:#f8fafc; padding:10px; border-radius:6px; min-height:80px; white-space:pre-wrap; margin:0;"></pre>
+      </div>
+    </div>
+    <div class="muted">Data served by /examples/lighting-values and /examples/lighting-properties/order-routing.</div>
+  </div>
+
   <div id="toast"></div>
 
   <script>
@@ -189,6 +208,28 @@
 
     qs('loadBtn').addEventListener('click', loadConfigs);
     qs('upsertBtn').addEventListener('click', upsert);
+
+    const safeJson = async (res) => {
+      const text = await res.text();
+      try { return JSON.parse(text); } catch (e) { return text; }
+    };
+
+    const loadValues = async () => {
+      const res = await fetch('/examples/lighting-values');
+      const data = await safeJson(res);
+      qs('valuesBox').textContent = JSON.stringify(data, null, 2);
+      if (!res.ok) showToast('Load values failed: ' + res.status, true);
+    };
+
+    const loadProps = async () => {
+      const res = await fetch('/examples/lighting-properties/order-routing');
+      const data = await safeJson(res);
+      qs('propsBox').textContent = JSON.stringify(data, null, 2);
+      if (!res.ok) showToast('Load props failed: ' + res.status, true);
+    };
+
+    qs('loadValuesBtn').addEventListener('click', loadValues);
+    qs('loadPropsBtn').addEventListener('click', loadProps);
   </script>
 </body>
 </html>
