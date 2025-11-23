@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -49,6 +50,7 @@ public class DatabaseConfiguration {
 
     @Bean
     @ConditionalOnBean(NamedParameterJdbcTemplate.class)
+    @Primary
     public CacheMissAlertRepository cacheMissAlertJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         return new JdbcCacheMissAlertRepository(jdbcTemplate);
     }

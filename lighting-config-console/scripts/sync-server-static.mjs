@@ -14,7 +14,7 @@ const serverStaticRoot = resolve(
   'resources',
   'static',
 )
-const serverConsoleDir = resolve(serverStaticRoot, 'console')
+const serverConsoleDir = resolve(serverStaticRoot, 'lighting-config')
 
 if (!existsSync(distDir)) {
   console.warn('[sync:server] dist folder not found, skip syncing. Run "pnpm build" first.')

@@ -10,6 +10,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 const config: UserConfig & { test: VitestUserConfig['test'] } = {
   plugins: [react()],
+  base: '/lighting-config/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

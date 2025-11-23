@@ -3,8 +3,10 @@ package io.lighting.config.embedded;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.client.transport.PollingTransport;
 import io.lighting.config.core.api.ConfigRepository;
+import io.lighting.config.server.config.DatabaseConfiguration;
 import io.lighting.config.server.config.LightingServerProperties;
 import io.lighting.config.server.config.ServerInfrastructureConfiguration;
+import io.lighting.config.server.config.WebComponentConfiguration;
 import io.lighting.config.server.notify.NotifyEngine;
 import io.lighting.config.server.service.ConfigApplicationService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -18,15 +20,21 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(io.lighting.config.server.rest.ConsoleConfigController.class)
 @ConditionalOnProperty(prefix = "lighting.config", name = "mode", havingValue = "embedded")
 @EnableConfigurationProperties({LightingEmbeddedProperties.class, LightingServerProperties.class})
-@ComponentScan(basePackages = "io.lighting.config.server.rest")
+@ComponentScan(basePackages = {
+        "io.lighting.config.server.rest",
+        "io.lighting.config.server.service"
+})
+@Import({
+        ServerInfrastructureConfiguration.class,
+        DatabaseConfiguration.class,
+        WebComponentConfiguration.class
+})
 public class LightingEmbeddedAutoConfiguration {
 
     @Bean

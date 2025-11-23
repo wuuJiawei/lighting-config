@@ -3,7 +3,9 @@ server:
 
 spring:
   autoconfigure:
-    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
   datasource:
     url: ${LIGHTING_DB_URL:jdbc:postgresql://localhost:5432/postgres}
     username: ${LIGHTING_DB_USER:lighting}
