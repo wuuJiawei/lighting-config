@@ -18,7 +18,6 @@
         <module>lighting-config-example-embedded</module>
         <module>lighting-config-example-standalone</module>
         <module>lighting-config-example-client</module>
-        <module>lighting-config-example-client-boot3</module>
     </modules>
 
 </project>

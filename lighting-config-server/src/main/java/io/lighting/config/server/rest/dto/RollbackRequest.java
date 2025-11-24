@@ -1,7 +1,7 @@
 package io.lighting.config.server.rest.dto;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 import static io.lighting.config.server.web.ApiConstants.DEFAULT_APP_ID;
 import static io.lighting.config.server.web.ApiConstants.DEFAULT_NAMESPACE;

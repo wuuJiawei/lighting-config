@@ -8,13 +8,13 @@ Lightweight configuration center for Java services. 支持独立部署与嵌入�
 - 可靠存储：默认 JDBC（MySQL/PostgreSQL/Oracle），提供多方言脚本与缓存失效策略。
 - 插件化：核心协议/模型在 `lighting-config-core`，存储、鉴权、灰度策略均可通过 SPI 扩展。
 - 安全/观测：Token/JWT、命名空间/租户隔离、指标 & 健康检查，便于上云与审计。
-- 生态：纯 Java SDK、Spring Boot 2.x/3.x Starter、示例工程与未来的 Web 控制台。
+- 生态：纯 Java SDK、Spring Boot 3 Starter、示例工程与未来的 Web 控制台。
 
 ## 模块一览
 - `lighting-config-core`：领域模型、协议、SPI（无 Spring 依赖）。
 - `lighting-config-server`：默认服务端实现（Spring Boot），内置 HTTP Poll + Admin API。
 - `lighting-config-client`：通用客户端 SDK，含长轮询、本地缓存、监听器。
-- `lighting-config-spring-boot-starter` / `lighting-config-spring-boot3-starter`：Spring Boot 2.x/3.x 自动装配。
+- `lighting-config-spring-boot-starter`：Spring Boot 3 自动装配。
 - `lighting-config-embedded`：嵌入式模式，业务进程内直接托管配置。
 - `lighting-config-example/*`：示例应用（embedded / standalone server / client）。
 - `lighting-config-console`：Web 控制台，方案见 `docs/frontend-architecture.md`。
@@ -67,7 +67,7 @@ open http://localhost:7086/lighting-config/api/docs
 
 ### 2）业务接入示例
 #### Spring Boot Starter（注解方式）
-`pom.xml` 引入 Starter（2.x 环境）：
+`pom.xml` 引入 Starter：
 
 ```xml
 <dependency>
@@ -170,7 +170,7 @@ System.out.println("flag=" + feature);
 ## 构建与测试
 - 全量构建：`mvn clean verify`
 - 仅编译（跳过测试）：`mvn -DskipTests install`
-- Spring Boot 3 相关模块：`mvn -P spring-boot3 -pl lighting-config-spring-boot3-starter -am verify`
+- 基线环境：JDK 17 + Spring Boot 3.2.x（无需额外 profile）
 
 ## 许可证
 Apache License 2.0，见 `LICENSE`。

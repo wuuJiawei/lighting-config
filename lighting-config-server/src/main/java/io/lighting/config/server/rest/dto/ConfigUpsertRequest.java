@@ -3,7 +3,7 @@ package io.lighting.config.server.rest.dto;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.model.ContentType;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
