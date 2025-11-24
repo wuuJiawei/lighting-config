@@ -19,16 +19,11 @@ Lightweight configuration center for Java services. 支持独立部署与嵌入�
 - `lighting-config-example/*`：示例应用（embedded / standalone server / client）。
 - `lighting-config-console`：Web 控制台，方案见 `docs/frontend-architecture.md`。
 
-## 快速开始
+## 快速入门
 前置：JDK 11+（兼容 17）、Maven 3.8+，如需独立服务端请准备 MySQL/PG/Oracle 数据源。
 
-### 1）快速体验示例
-- Embedded：`cd lighting-config-example/lighting-config-example-embedded && mvn spring-boot:run`
-- 轻量 Server 示例：`cd lighting-config-example/lighting-config-example-standalone && mvn spring-boot:run`
-- Spring Boot 客户端示例：`cd lighting-config-example/lighting-config-example-client && mvn spring-boot:run`
-
-### 2）启动正式服务端
-准备 `application.yml`（示例使用 PostgreSQL，可替换为 MySQL/Oracle）：
+### 1）启动服务端并验证
+1. 准备 `application.yml`（示例使用 PostgreSQL，可替换为 MySQL/Oracle）：
 
 ```yaml
 spring:
@@ -47,18 +42,31 @@ lighting:
       enabled: true
       mode: token
       options:
-        token: ${LIGHTING_CONFIG_TOKEN}
+        tokens: ${LIGHTING_CONSOLE_TOKENS:lighting-console-token}
 ```
 
-启动：
+2. 启动并打开接口文档：
 
 ```bash
 mvn -pl lighting-config-server -am spring-boot:run
+open http://localhost:7086/lighting-config/api/docs
 ```
 
-数据库 DDL 见 `docs/schema/`，更多配置项见 `docs/server-configuration.md`。
+默认 token 为 `lighting-console-token`（可通过 `X-Lighting-Token` 或 `Authorization: Bearer <token>` 传递）。数据库 DDL 见 `docs/schema/`，更多配置项见 `docs/server-configuration.md`。
 
-### 3）客户端接入（Spring Boot）
+3. 通过 Admin API 写入一条配置（例：`feature.order.v2=true`），客户端即可轮询到：
+
+```bash
+ curl -XPOST http://localhost:7086/lighting-config/api/admin/config \
+  -H 'Content-Type: application/json' \
+  -H 'X-Lighting-Token: lighting-console-token' \
+  -d '{"tenant":"default","namespace":"default","appId":"demo-client","key":"feature.order.v2","value":"true","contentType":"STRING"}'
+```
+
+4. 控制台入口（Standalone 或嵌入式均可）：浏览器访问 `http://<host>:<port>/lighting-config/index.html`，示例为 `http://localhost:7086/lighting-config/index.html`，登录时填入同一 token。
+
+### 2）业务接入示例
+#### Spring Boot Starter（注解方式）
 `pom.xml` 引入 Starter（2.x 环境）：
 
 ```xml
@@ -69,7 +77,7 @@ mvn -pl lighting-config-server -am spring-boot:run
 </dependency>
 ```
 
-配置服务端地址与命名空间：
+配置服务端地址与作用域：
 
 ```yaml
 lighting:
@@ -77,18 +85,24 @@ lighting:
     client:
       server:
         address: http://localhost:7086
+      tenant: default
       namespace: default
       app-id: demo-client
-      poll-interval: 30s
+      poll-interval: 15s
 ```
 
-在业务代码中使用注解即可自动拉取并热刷新：
+在业务代码中使用两个核心注解：`@LightingValue` 拉取/热刷值，`@LightingListener` 监听变更。
 
 ```java
 @RestController
 class FeatureController {
   @LightingValue(key = "feature.order.v2", defaultValue = "false")
   private boolean orderV2Enabled;
+
+  @LightingListener(prefix = "feature.")
+  public void onFeatureChanged(ConfigChange change) {
+    log.info("feature changed: {} -> {}", change.getCoordinate().getKey(), change.getValue());
+  }
 
   @GetMapping("/feature/order")
   public boolean orderV2() {
@@ -97,7 +111,54 @@ class FeatureController {
 }
 ```
 
-非 Spring 场景可直接使用 `lighting-config-client` 提供的 `LightingClient`/监听器接口，详见 `docs/client-configuration.md`。
+复杂对象可用 `@LightingProperties` 一次性注入并随配置中心热刷新：
+
+```java
+@Component
+@LightingProperties(prefix = "order.routing")
+class OrderRoutingProperties {
+  private boolean enabled = true;
+  private Duration slowThreshold = Duration.ofSeconds(2);
+  private int workerPoolSize = 4;
+  private List<String> preferredRegions = List.of("ap-shanghai", "ap-singapore");
+  private Map<String, Integer> regionWeights = Map.of("ap-shanghai", 70, "ap-singapore", 30);
+
+  // getter 省略；修改配置即可实时更新本 Bean
+}
+```
+
+#### 纯 Java SDK（直接调用 manager）
+非 Spring 场景使用 `LightingClient` + `HttpPollingTransport` 即可：
+
+```java
+ClientOptions options = ClientOptions.builder()
+    .serverAddress("http://localhost:7086")
+    .tenant("default")
+    .namespace("default")
+    .appId("demo-client")
+    .pollInterval(Duration.ofSeconds(10))
+    .authToken("lighting-console-token")
+    .build();
+
+LightingClient client = new LightingClient(options, new HttpPollingTransport(options));
+client.addListener("feature.", change -> System.out.println("updated: " + change.getValue()));
+client.start(); // 非守护线程，请在 JVM 退出前调用 close
+
+String feature = client.get("feature.order.v2").orElse("false");
+System.out.println("flag=" + feature);
+```
+
+如果希望完全不依赖远端服务端，可参考 `lighting-config-embedded` 直接创建 `EmbeddedConfigManager` 以嵌入式模式托管配置。
+
+**接入注意事项**
+- Key 写法宽容：服务端存储用点分隔（如 `order.routing.worker-pool-size`），客户端读取时支持驼峰 / 下划线 / 中划线互通，`workerPoolSize`、`worker-pool-size`、`worker_pool_size` 均可匹配同一配置键。
+- 格式与解码：`contentType` 支持 STRING/BOOLEAN/INT/LONG/FLOAT/DOUBLE/LIST/MAP，Starter 会按类型自动转换并支持 JSON 绑定 POJO（见 `@LightingProperties` 示例）。
+- 作用域合并：`lighting.config.client.app-id` 可逗号分隔多个值，客户端自动在末尾追加内置 `__global__`，并按顺序优先级合并（业务作用域覆盖全局）。
+
+### 3）快速体验示例
+- Embedded：`cd lighting-config-example/lighting-config-example-embedded && mvn spring-boot:run`
+- 轻量 Server 示例：`cd lighting-config-example/lighting-config-example-standalone && mvn spring-boot:run`
+- Spring Boot 客户端示例：`cd lighting-config-example/lighting-config-example-client && mvn spring-boot:run`
 
 ## 架构与文档
 - 设计基线：`docs/系统设计文档.md`
@@ -110,15 +171,6 @@ class FeatureController {
 - 全量构建：`mvn clean verify`
 - 仅编译（跳过测试）：`mvn -DskipTests install`
 - Spring Boot 3 相关模块：`mvn -P spring-boot3 -pl lighting-config-spring-boot3-starter -am verify`
-
-## 发布到 Maven Central（摘要）
-1. 选定开源协议（建议 Apache-2.0），在仓库根目录补充 `LICENSE`、`NOTICE`、`CODE_OF_CONDUCT.md`、`CONTRIBUTING.md`。
-2. 为所有子模块补齐 POM 元数据：`<name>`、`<description>`、`<url>`、`<licenses>`、`<developers>`、`<scm>`，并设置 `distributionManagement` 指向 `s01.oss.sonatype.org`。
-3. 添加发布 profile：`maven-source-plugin`、`maven-javadoc-plugin`、`maven-gpg-plugin`（签名）、`nexus-staging-maven-plugin`，使用 `mvn -P release deploy` 生成 staging。
-4. 在 `~/.m2/settings.xml` 配置 Sonatype 账户与 GPG 密钥（`gpg --full-generate-key`），保持版本号非 SNAPSHOT。
-5. 通过 Sonatype UI 或 `nexus-staging:release` 关闭并发布 staging 仓库，等待同步到 Maven Central 后打 tag 并 bump 下一版本。
-
-更多发布细节可在后续补充到 `docs/` 或 CI 脚本中。
 
 ## 许可证
 Apache License 2.0，见 `LICENSE`。
