@@ -8,10 +8,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 
-@SpringBootApplication(exclude = {
-        DataSourceAutoConfiguration.class,
-        DataSourceTransactionManagerAutoConfiguration.class
-})
+@SpringBootApplication
 @EnableConfigurationProperties({LightingServerProperties.class, DataSourceProperties.class})
 public class ConfigServerApplication {
 
