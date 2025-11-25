@@ -4,15 +4,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.lighting</groupId>
+        <groupId>pub.lighting</groupId>
         <artifactId>lighting-config</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>lighting-config-example</artifactId>
     <packaging>pom</packaging>
     <name>lighting-config-example</name>
     <description>Example projects for lighting-config, covering embedded, standalone server, and client usage.</description>
+
+    <properties>
+        <!-- Do not publish example artifacts to Central -->
+        <central.skip>true</central.skip>
+    </properties>
 
     <modules>
         <module>lighting-config-example-embedded</module>
