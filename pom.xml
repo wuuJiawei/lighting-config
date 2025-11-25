@@ -6,11 +6,11 @@
 
     <groupId>pub.lighting</groupId>
     <artifactId>lighting-config</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
     <name>lighting-config</name>
     <description>Lightweight configuration center for Java services with HTTP long-polling and RDBMS authority storage.</description>
-    <url>https://config.lighting.pub</url>
+    <url>https://github.com/wuuJiawei/lighting-config</url>
 
     <licenses>
         <license>

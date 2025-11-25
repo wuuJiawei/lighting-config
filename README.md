@@ -1,5 +1,8 @@
 # lighting-config
 
+[![Maven Central](https://img.shields.io/maven-central/v/pub.lighting/lighting-config-spring-boot-starter.svg)](https://central.sonatype.com/artifact/pub.lighting/lighting-config-spring-boot-starter)
+![JDK](https://img.shields.io/badge/JDK-17%2B-0b7cfa)
+
 Lightweight configuration center for Java services. 支持独立部署与嵌入式两种形态，基于 HTTP 长轮询 + 本地缓存，默认以 RDBMS 为权威存储（Caffeine 做热点缓存），提供 SPI 插件化、安全与可观测能力。
 
 ## 特性
@@ -20,7 +23,7 @@ Lightweight configuration center for Java services. 支持独立部署与嵌入�
 - `lighting-config-console`：Web 控制台，方案见 `docs/frontend-architecture.md`。
 
 ## 快速入门
-前置：JDK 11+（兼容 17）、Maven 3.8+，如需独立服务端请准备 MySQL/PG/Oracle 数据源。
+前置：JDK 17、Maven 3.8+，如需独立服务端请准备 MySQL/PG/Oracle 数据源。最新可用版本见上方 Maven Central badge（示例使用 `1.0.1`）。
 
 ### 1）启动服务端并验证
 1. 准备 `application.yml`（示例使用 PostgreSQL，可替换为 MySQL/Oracle）：
@@ -65,15 +68,15 @@ open http://localhost:7086/lighting-config/api/docs
 
 4. 控制台入口（Standalone 或嵌入式均可）：浏览器访问 `http://<host>:<port>/lighting-config/index.html`，示例为 `http://localhost:7086/lighting-config/index.html`，登录时填入同一 token。
 
-### 2）业务接入示例
-#### Spring Boot Starter（注解方式）
-`pom.xml` 引入 Starter：
+### 2）业务接入速览
+#### Spring Boot Starter（推荐）
+`pom.xml` 引入 Starter（最新版本见 badge，示例使用 `1.0.1`）：
 
 ```xml
 <dependency>
-  <groupId>io.lighting</groupId>
+  <groupId>pub.lighting</groupId>
   <artifactId>lighting-config-spring-boot-starter</artifactId>
-  <version>${lighting.config.version}</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
@@ -127,7 +130,17 @@ class OrderRoutingProperties {
 }
 ```
 
-#### 纯 Java SDK（直接调用 manager）
+#### 纯 Java SDK（非 Spring 场景）
+`pom.xml` 引入客户端 SDK：
+
+```xml
+<dependency>
+  <groupId>pub.lighting</groupId>
+  <artifactId>lighting-config-client</artifactId>
+  <version>1.0.1</version>
+</dependency>
+```
+
 非 Spring 场景使用 `LightingClient` + `HttpPollingTransport` 即可：
 
 ```java
@@ -148,7 +161,18 @@ String feature = client.get("feature.order.v2").orElse("false");
 System.out.println("flag=" + feature);
 ```
 
-如果希望完全不依赖远端服务端，可参考 `lighting-config-embedded` 直接创建 `EmbeddedConfigManager` 以嵌入式模式托管配置。
+#### 嵌入式模式（无远端服务端）
+`pom.xml` 引入嵌入式包：
+
+```xml
+<dependency>
+  <groupId>pub.lighting</groupId>
+  <artifactId>lighting-config-embedded</artifactId>
+  <version>1.0.1</version>
+</dependency>
+```
+
+使用 `EmbeddedConfigManager` 在进程内托管配置，适合单机/边缘场景，避免外部依赖。参考模块 `lighting-config-example-embedded` 的配置与启动方式。
 
 **接入注意事项**
 - Key 写法宽容：服务端存储用点分隔（如 `order.routing.worker-pool-size`），客户端读取时支持驼峰 / 下划线 / 中划线互通，`workerPoolSize`、`worker-pool-size`、`worker_pool_size` 均可匹配同一配置键。
