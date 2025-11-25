@@ -178,5 +178,16 @@ Use `EmbeddedConfigManager` to host config inside your process (great for edge/s
 - Skip tests: `mvn -DskipTests install`
 - Baseline: JDK 17, Spring Boot 3.2.x
 
+## Screenshots
+Console samples (more in `docs/screenshots/`):
+
+![Login](docs/screenshots/PixPin_2025-11-25_18-51-43.png)
+![Dashboard](docs/screenshots/PixPin_2025-11-25_18-52-02.png)
+![Configs](docs/screenshots/PixPin_2025-11-25_18-52-09.png)
+![Config Detail](docs/screenshots/PixPin_2025-11-25_18-52-35.png)
+![Namespace](docs/screenshots/PixPin_2025-11-25_18-53-10.png)
+![Audit](docs/screenshots/PixPin_2025-11-25_18-53-26.png)
+![Polling](docs/screenshots/PixPin_2025-11-25_18-53-40.png)
+
 ## License
 Apache License 2.0 (see `LICENSE`).
