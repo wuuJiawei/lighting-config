@@ -11,6 +11,14 @@ spring:
     username: ${LIGHTING_DB_USER:lighting}
     password: ${LIGHTING_DB_PASSWORD:lighting}
     driver-class-name: ${LIGHTING_DB_DRIVER:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
 
 lighting:
   config:
@@ -24,3 +32,10 @@ lighting:
       storage:
         type: FILE
         path: ./example-config.json
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
