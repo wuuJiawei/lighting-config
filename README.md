@@ -1,5 +1,7 @@
 # lighting-config
 
+[English](README.en.md) | [简体中文](README.md)
+
 [![Maven Central](https://img.shields.io/maven-central/v/pub.lighting/lighting-config-spring-boot-starter.svg)](https://central.sonatype.com/artifact/pub.lighting/lighting-config-spring-boot-starter)
 ![JDK](https://img.shields.io/badge/JDK-17%2B-0b7cfa)
 
