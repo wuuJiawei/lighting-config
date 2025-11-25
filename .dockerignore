@@ -1,0 +1,8 @@
+.git
+**/target
+**/node_modules
+**/.idea
+**/.vscode
+**/.DS_Store
+docker/.env
+docker/.env.local

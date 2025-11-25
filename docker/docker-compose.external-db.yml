@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  lighting-config-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: lighting-config-server:latest
+    container_name: lighting-config-server
+    environment:
+      LIGHTING_DB_URL: ${LIGHTING_DB_URL:?set JDBC url, e.g. jdbc:postgresql://host.docker.internal:5432/lighting_config}
+      LIGHTING_DB_USER: ${LIGHTING_DB_USER:?db username}
+      LIGHTING_DB_PASSWORD: ${LIGHTING_DB_PASSWORD:?db password}
+      LIGHTING_DB_DRIVER: ${LIGHTING_DB_DRIVER:-org.postgresql.Driver}
+      LIGHTING_STORAGE_TYPE: ${LIGHTING_STORAGE_TYPE:-jdbc}
+      LIGHTING_CONSOLE_TOKENS: ${LIGHTING_CONSOLE_TOKENS:-lighting-console-token}
+    ports:
+      - "${SERVER_PORT:-7086}:7086"

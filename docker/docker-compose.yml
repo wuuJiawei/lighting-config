@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  lighting-config-db:
+    image: postgres:15
+    container_name: lighting-config-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lighting_config}
+      POSTGRES_USER: ${POSTGRES_USER:-lighting}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lighting}
+    ports:
+      - "${EXPOSED_DB_PORT:-5432}:5432"
+    volumes:
+      - lighting-config-db-data:/var/lib/postgresql/data
+
+  lighting-config-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: lighting-config-server:latest
+    container_name: lighting-config-server
+    depends_on:
+      - lighting-config-db
+    environment:
+      LIGHTING_DB_URL: ${LIGHTING_DB_URL:-jdbc:postgresql://lighting-config-db:5432/lighting_config}
+      LIGHTING_DB_USER: ${LIGHTING_DB_USER:-lighting}
+      LIGHTING_DB_PASSWORD: ${LIGHTING_DB_PASSWORD:-lighting}
+      LIGHTING_DB_DRIVER: ${LIGHTING_DB_DRIVER:-org.postgresql.Driver}
+      LIGHTING_STORAGE_TYPE: ${LIGHTING_STORAGE_TYPE:-jdbc}
+      LIGHTING_CONSOLE_TOKENS: ${LIGHTING_CONSOLE_TOKENS:-lighting-console-token}
+    ports:
+      - "${SERVER_PORT:-7086}:7086"
+
+volumes:
+  lighting-config-db-data:
+    driver: local

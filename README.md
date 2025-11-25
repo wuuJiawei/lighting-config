@@ -160,6 +160,11 @@ System.out.println("flag=" + feature);
 - 轻量 Server 示例：`cd lighting-config-example/lighting-config-example-standalone && mvn spring-boot:run`
 - Spring Boot 客户端示例：`cd lighting-config-example/lighting-config-example-client && mvn spring-boot:run`
 
+## Docker 部署
+- 一键启动（含 PostgreSQL）：`cp docker/.env.example docker/.env && docker compose -f docker/docker-compose.yml up -d`
+- 外部数据库：在 `.env` 中设置 `LIGHTING_DB_URL/LIGHTING_DB_USER/LIGHTING_DB_PASSWORD`，运行 `docker compose -f docker/docker-compose.external-db.yml up -d`
+- 详细说明见 `docs/devops-docker-deployment.md`
+
 ## 架构与文档
 - 设计基线：`docs/系统设计文档.md`
 - 控制台方案：`docs/frontend-architecture.md`
