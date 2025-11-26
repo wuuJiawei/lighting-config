@@ -2,7 +2,7 @@
 
 ## 1. 目标
 - 为 `lighting-config-server` 提供基础 Web 控制台：配置 CRUD、监听状态、命名空间/租户管理、推送日志可视化。
-- 与后端 REST API (`/api/admin/config`, `/api/admin/console/cache-miss`, `/api/gray`, `/api/poll`, `/actuator`) 对齐，后续可扩展到 WebSocket/SSE。
+- 与后端 REST API (`/api/admin/config`, `/api/admin/config/locks`, `/api/admin/console/cache-miss`, `/api/gray`, `/api/poll`, `/actuator`) 对齐，编辑锁场景使用 SSE `/api/admin/config/locks/stream`。
 - 设计可渐进增强的项目骨架，方便后续 Agent/Contributor 直接补充页面。
 
 ## 2. 技术栈
@@ -50,7 +50,7 @@ lighting-config-console/
 - 通过 REST API 与 server 交互，默认 baseURL=`/api`（同域部署，可由 nginx/Spring 网关负责反向代理）。
 - TanStack Query 负责服务端数据，内置 `queryClient` 处理分页/重试/缓存失效；Mutation 成功后局部 `invalidate`.
 - Zustand 以 slice 形式管理 UI 状态（筛选条件、抽屉显隐、草稿 config），并暴露 hooks 给页面层。避免在 Query 中塞入 UI state。
-- 轮询结果与动态变更目前通过 HTTP `/api/poll` 完成，未来如需更实时可扩展 WebSocket/SSE Gateway。
+- 轮询结果与动态变更仍通过 HTTP `/api/poll` 完成；控制台实时状态（编辑锁提示）通过 SSE 获取，避免额外轮询。
 
 ## 5. 开发/构建脚本（计划）
 | 命令 | 说明 |

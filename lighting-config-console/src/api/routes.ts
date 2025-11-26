@@ -1,6 +1,9 @@
 export const ADMIN_API_PREFIX = '/admin'
 export const ADMIN_CONFIG_ENDPOINT = `${ADMIN_API_PREFIX}/config`
 export const ADMIN_CONFIG_ROLLBACK = `${ADMIN_CONFIG_ENDPOINT}/rollback`
+export const ADMIN_CONFIG_LOCKS = `${ADMIN_CONFIG_ENDPOINT}/locks`
+export const ADMIN_CONFIG_LOCKS_RELEASE = `${ADMIN_CONFIG_LOCKS}/release`
+export const ADMIN_CONFIG_LOCKS_STREAM = `${ADMIN_CONFIG_LOCKS}/stream`
 export const ADMIN_CONSOLE_PREFIX = `${ADMIN_API_PREFIX}/console`
 export const ADMIN_CONSOLE_STATS = `${ADMIN_CONSOLE_PREFIX}/stats`
 export const ADMIN_CONSOLE_AUDIT = `${ADMIN_CONSOLE_PREFIX}/audit`

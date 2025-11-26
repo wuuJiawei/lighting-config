@@ -7,6 +7,11 @@ import io.lighting.config.core.util.TimeProvider;
 import io.lighting.config.server.cache.CacheMissTracker;
 import io.lighting.config.server.cache.ClientSnapshotService;
 import io.lighting.config.server.config.LightingServerProperties;
+import io.lighting.config.server.lock.ConfigEditLockNotifier;
+import io.lighting.config.server.lock.ConfigEditLockRepository;
+import io.lighting.config.server.lock.ConfigEditLockService;
+import io.lighting.config.server.lock.InMemoryConfigEditLockRepository;
+import io.lighting.config.server.lock.LockOwnerResolver;
 import io.lighting.config.server.monitoring.CacheMissAlertRepository;
 import io.lighting.config.server.monitoring.InMemoryCacheMissAlertRepository;
 import io.lighting.config.server.notify.ChangeFeed;
@@ -26,6 +31,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 @Configuration
 public class ServerInfrastructureConfiguration {
@@ -104,5 +111,31 @@ public class ServerInfrastructureConfiguration {
     @ConditionalOnMissingBean(RevisionRepository.class)
     public RevisionRepository revisionRepository() {
         return new InMemoryRevisionRepository();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(ConfigEditLockRepository.class)
+    public ConfigEditLockRepository configEditLockRepository() {
+        return new InMemoryConfigEditLockRepository();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public LockOwnerResolver lockOwnerResolver() {
+        return new LockOwnerResolver();
+    }
+
+    @Bean
+    public ConfigEditLockService configEditLockService(ConfigEditLockRepository repository,
+                                                       EventBus eventBus,
+                                                       TimeProvider timeProvider,
+                                                       LightingServerProperties properties) {
+        int ttlSeconds = Math.max(30, properties.getConsole().getEditLockTtlSeconds());
+        return new ConfigEditLockService(repository, eventBus, timeProvider, Duration.ofSeconds(ttlSeconds));
+    }
+
+    @Bean
+    public ConfigEditLockNotifier configEditLockNotifier(ConfigEditLockService lockService, EventBus eventBus) {
+        return new ConfigEditLockNotifier(lockService, eventBus);
     }
 }

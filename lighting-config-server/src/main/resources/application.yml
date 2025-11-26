@@ -22,6 +22,8 @@ lighting:
       mode: token
       options:
         tokens: ${LIGHTING_CONSOLE_TOKENS:lighting-console-token}
+    console:
+      edit-lock-ttl-seconds: ${LIGHTING_CONSOLE_LOCK_TTL:300}
 springdoc:
   api-docs:
     path: /lighting-config/api/openapi

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch, type SubmitHandler } from 'react-hook-form'
@@ -20,6 +20,8 @@ import { ValueEditor } from './value-editor'
 import { CONTENT_TYPE_OPTIONS, CONTENT_TYPE_VALUES, type ContentTypeValue } from './content-types'
 import { ConfigDeleteDialog } from '@/components/shared/config-delete-dialog'
 import { ConfigRollbackDialog } from '@/components/shared/config-rollback-dialog'
+import { decodeConfigId } from '@/utils/config-id'
+import { useConfigEditLock } from '@/hooks/useConfigEditLock'
 
 const formSchema = z
   .object({
@@ -128,6 +130,35 @@ export function ConfigEditorPage() {
     queryFn: () => fetchNamespaces(tenantValue),
   })
   const loadedConfig = detailQuery.data && detailQuery.data.id === configId ? detailQuery.data : undefined
+
+  const lockPayload = useMemo(() => {
+    if (isNew || !configId) {
+      return undefined
+    }
+    if (loadedConfig) {
+      return {
+        tenant: loadedConfig.tenant,
+        namespace: loadedConfig.namespace,
+        appId: loadedConfig.appId,
+        key: loadedConfig.key,
+      }
+    }
+    try {
+      const coordinate = decodeConfigId(configId)
+      return {
+        tenant: coordinate.tenant,
+        namespace: coordinate.namespace,
+        appId: coordinate.appId,
+        key: coordinate.key,
+      }
+    } catch (error) {
+      console.warn('[lock] failed to decode config id', error)
+      return undefined
+    }
+  }, [configId, isNew, loadedConfig])
+
+  const { lockState, acquiring: acquiringLock, error: lockError, release: releaseLock } = useConfigEditLock(lockPayload, !isNew)
+  const lockedByOther = Boolean(!isNew && lockState?.locked && !lockState.ownedByMe)
 
   useEffect(() => {
     if (isNew) {
@@ -243,6 +274,31 @@ export function ConfigEditorPage() {
   ])
   const tenantOptions = toUniqueOptions([tenantValue, DEFAULT_VALUES.tenant])
 
+  const lockMessage = useMemo(() => {
+    if (isNew) {
+      return null
+    }
+    if (lockError) {
+      return lockError
+    }
+    if (acquiringLock) {
+      return '正在申请编辑锁...'
+    }
+    if (!lockState) {
+      return '正在准备编辑上下文'
+    }
+    const expires = lockState.expiresAt ? new Date(lockState.expiresAt).toLocaleTimeString() : '稍后'
+    if (!lockState.locked) {
+      return '当前无其他人编辑，已可安全修改'
+    }
+    if (lockState.ownedByMe) {
+      return `已获得编辑锁，锁将在 ${expires} 自动释放`
+    }
+    const owner = lockState.ownerName || lockState.ownerFingerprint || '其他人'
+    return `${owner} 正在编辑，将在 ${expires} 自动解除`
+  }, [acquiringLock, isNew, lockError, lockState])
+  const lockOwnerDisplay = lockState?.ownerName || lockState?.ownerFingerprint || '其他人'
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -252,12 +308,16 @@ export function ConfigEditorPage() {
           <>
             {!isNew ? (
               <>
-                <Button variant="ghost" disabled={!loadedConfig} onClick={() => loadedConfig && setRollbackTarget(loadedConfig)}>
+                <Button
+                  variant="ghost"
+                  disabled={!loadedConfig || lockedByOther}
+                  onClick={() => loadedConfig && setRollbackTarget(loadedConfig)}
+                >
                   回滚
                 </Button>
                 <Button
                   variant="destructive"
-                  disabled={!loadedConfig}
+                  disabled={!loadedConfig || lockedByOther}
                   onClick={() => loadedConfig && setDeleteTarget(loadedConfig)}
                 >
                   删除
@@ -279,100 +339,127 @@ export function ConfigEditorPage() {
         }
       />
 
-      <form onSubmit={(event) => void form.handleSubmit(onSubmit)(event)} className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>基础信息</CardTitle>
-            <CardDescription>定义 tenant / namespace / appId / key</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="租户" error={form.formState.errors.tenant?.message}>
-                <CreatableSelect
-                  value={tenantValue}
-                  options={tenantOptions}
-                  placeholder="选择或创建租户"
-                  inputPlaceholder="输入租户名称，回车快速创建"
-                  onChange={(next) => form.setValue('tenant', next, { shouldDirty: true, shouldValidate: true })}
-                />
-              </Field>
-              <Field label="命名空间" error={form.formState.errors.namespace?.message}>
-                <CreatableSelect
-                  value={namespaceValue}
-                  options={namespaceOptions}
-                  placeholder="选择或创建命名空间"
-                  inputPlaceholder="输入命名空间，回车快速创建"
-                  onChange={(next) => form.setValue('namespace', next, { shouldDirty: true, shouldValidate: true })}
-                />
-              </Field>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="App ID" error={form.formState.errors.appId?.message}>
-                <CreatableSelect
-                  value={appIdValue}
-                  options={appOptions}
-                  placeholder="选择或创建 App ID"
-                  inputPlaceholder="输入 App ID，回车快速创建"
-                  onChange={(next) => form.setValue('appId', next, { shouldDirty: true, shouldValidate: true })}
-                />
-              </Field>
-              <Field label="Key" error={form.formState.errors.key?.message}>
-                <Input {...form.register('key')} placeholder="config.example" />
-              </Field>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="格式">
-                <Select value={contentTypeValue} onValueChange={(value: ContentTypeValue) => handleContentTypeChange(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择格式" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTENT_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>发布策略</CardTitle>
-            <CardDescription>控制配置启用或禁用</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={enabledValue}
-                onChange={(event) => form.setValue('enabled', event.target.checked)}
-              />
-              启用配置
-            </label>
-            <Button type="submit" disabled={saveMutation.isPending} className="w-full">
-              {saveMutation.isPending ? '保存中...' : '保存配置'}
+      {!isNew ? (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+          <div className="space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">编辑锁</p>
+            <p className="text-sm text-foreground">{lockMessage ?? '正在尝试获取编辑锁'}</p>
+          </div>
+          {lockState?.ownedByMe && lockState.locked ? (
+            <Button variant="ghost" size="sm" onClick={() => void releaseLock()}>
+              释放锁
             </Button>
-          </CardContent>
-        </Card>
+          ) : null}
+        </div>
+      ) : null}
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>配置内容</CardTitle>
-            <CardDescription>根据内容类型提供 Switch / 数字输入 / JSON 编辑器，默认使用简单字符串</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ValueEditor contentType={contentTypeValue} value={value} onChange={handleValueChange} />
-            {form.formState.errors.value ? (
-              <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
-            ) : null}
-          </CardContent>
-        </Card>
-      </form>
+      <div className="relative">
+        {lockedByOther ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/80 backdrop-blur-sm">
+            <div className="max-w-md rounded-md border bg-card px-4 py-3 text-center shadow">
+              <p className="font-semibold text-destructive">{lockOwnerDisplay} 正在编辑此配置</p>
+              <p className="mt-1 text-xs text-muted-foreground">等待对方保存或退出后会自动解除锁定</p>
+            </div>
+          </div>
+        ) : null}
+        <form
+          onSubmit={(event) => void form.handleSubmit(onSubmit)(event)}
+          className={`grid gap-6 lg:grid-cols-[2fr_1fr] ${lockedByOther ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>基础信息</CardTitle>
+              <CardDescription>定义 tenant / namespace / appId / key</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="租户" error={form.formState.errors.tenant?.message}>
+                  <CreatableSelect
+                    value={tenantValue}
+                    options={tenantOptions}
+                    placeholder="选择或创建租户"
+                    inputPlaceholder="输入租户名称，回车快速创建"
+                    onChange={(next) => form.setValue('tenant', next, { shouldDirty: true, shouldValidate: true })}
+                  />
+                </Field>
+                <Field label="命名空间" error={form.formState.errors.namespace?.message}>
+                  <CreatableSelect
+                    value={namespaceValue}
+                    options={namespaceOptions}
+                    placeholder="选择或创建命名空间"
+                    inputPlaceholder="输入命名空间，回车快速创建"
+                    onChange={(next) => form.setValue('namespace', next, { shouldDirty: true, shouldValidate: true })}
+                  />
+                </Field>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="App ID" error={form.formState.errors.appId?.message}>
+                  <CreatableSelect
+                    value={appIdValue}
+                    options={appOptions}
+                    placeholder="选择或创建 App ID"
+                    inputPlaceholder="输入 App ID，回车快速创建"
+                    onChange={(next) => form.setValue('appId', next, { shouldDirty: true, shouldValidate: true })}
+                  />
+                </Field>
+                <Field label="Key" error={form.formState.errors.key?.message}>
+                  <Input {...form.register('key')} placeholder="config.example" />
+                </Field>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="格式">
+                  <Select value={contentTypeValue} onValueChange={(value: ContentTypeValue) => handleContentTypeChange(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择格式" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONTENT_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>发布策略</CardTitle>
+              <CardDescription>控制配置启用或禁用</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={enabledValue}
+                  onChange={(event) => form.setValue('enabled', event.target.checked)}
+                />
+                启用配置
+              </label>
+              <Button type="submit" disabled={saveMutation.isPending || lockedByOther} className="w-full">
+                {saveMutation.isPending ? '保存中...' : '保存配置'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>配置内容</CardTitle>
+              <CardDescription>根据内容类型提供 Switch / 数字输入 / JSON 编辑器，默认使用简单字符串</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ValueEditor contentType={contentTypeValue} value={value} onChange={handleValueChange} />
+              {form.formState.errors.value ? (
+                <p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
+              ) : null}
+            </CardContent>
+          </Card>
+        </form>
+      </div>
       <ConfigRollbackDialog
         config={rollbackTarget}
         open={Boolean(rollbackTarget)}

@@ -12,6 +12,7 @@ public class LightingServerProperties {
     private final Storage storage = new Storage();
     private final Auth auth = new Auth();
     private final Monitoring monitoring = new Monitoring();
+    private final Console console = new Console();
 
     public Mode getMode() {
         return mode;
@@ -31,6 +32,10 @@ public class LightingServerProperties {
 
     public Monitoring getMonitoring() {
         return monitoring;
+    }
+
+    public Console getConsole() {
+        return console;
     }
 
     public enum Mode {
@@ -90,6 +95,18 @@ public class LightingServerProperties {
 
         public void setCacheMissThreshold(int cacheMissThreshold) {
             this.cacheMissThreshold = cacheMissThreshold;
+        }
+    }
+
+    public static class Console {
+        private int editLockTtlSeconds = 300;
+
+        public int getEditLockTtlSeconds() {
+            return editLockTtlSeconds;
+        }
+
+        public void setEditLockTtlSeconds(int editLockTtlSeconds) {
+            this.editLockTtlSeconds = editLockTtlSeconds;
         }
     }
 }

@@ -11,6 +11,7 @@ public final class ApiConstants {
     public static final String API_BASE_PATH = "/lighting-config/api";
     public static final String ADMIN_CONSOLE_PATH = API_BASE_PATH + "/admin/console";
     public static final String ADMIN_CONFIG_PATH = API_BASE_PATH + "/admin/config";
+    public static final String ADMIN_CONFIG_LOCK_PATH = ADMIN_CONFIG_PATH + "/locks";
     public static final String AUTH_PATH = API_BASE_PATH + "/auth";
     public static final String REVISIONS_PATH = API_BASE_PATH + "/revisions";
     public static final String OPENAPI_PATH = API_BASE_PATH + "/openapi";
@@ -25,6 +26,9 @@ public final class ApiConstants {
 
     public static final String HEADER_AUTHORIZATION_BEARER_PREFIX = "Bearer ";
     public static final String HEADER_TOKEN = "X-Lighting-Token";
+    public static final String HEADER_EDITOR_ID = "X-Lighting-Editor-Id";
+    public static final String HEADER_EDITOR_NAME = "X-Lighting-Editor-Name";
+    public static final String REQUEST_ATTRIBUTE_AUTH_TOKEN = "lighting.auth.token";
     public static final String BEARER_TOKEN_TYPE = "bearer";
     public static final String BEARER_FORMAT = "TOKEN";
     public static final String UNAUTHORIZED_MESSAGE = "Unauthorized";

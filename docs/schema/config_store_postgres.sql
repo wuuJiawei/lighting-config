@@ -42,6 +42,19 @@ CREATE TABLE IF NOT EXISTS cache_miss_alert (
 
 CREATE INDEX IF NOT EXISTS idx_cache_miss_tenant ON cache_miss_alert (tenant, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS config_edit_lock (
+    id BIGSERIAL PRIMARY KEY,
+    tenant VARCHAR(64) NOT NULL,
+    namespace VARCHAR(128) NOT NULL,
+    app_id VARCHAR(128) NOT NULL,
+    key VARCHAR(512) NOT NULL,
+    owner_id VARCHAR(128) NOT NULL,
+    owner_name VARCHAR(128),
+    expires_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant, namespace, app_id, key)
+);
+
 -- Sample seed data for demos
 INSERT INTO config_item (tenant, namespace, app_id, key, content_type, value, version, tags, enabled)
 VALUES

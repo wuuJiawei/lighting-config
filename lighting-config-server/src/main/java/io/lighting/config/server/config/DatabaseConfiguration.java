@@ -3,6 +3,8 @@ package io.lighting.config.server.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lighting.config.core.api.ConfigRepository;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.server.lock.ConfigEditLockRepository;
+import io.lighting.config.server.lock.JdbcConfigEditLockRepository;
 import io.lighting.config.server.monitoring.CacheMissAlertRepository;
 import io.lighting.config.server.monitoring.JdbcCacheMissAlertRepository;
 import io.lighting.config.server.repository.JdbcConfigRepository;
@@ -59,5 +61,12 @@ public class DatabaseConfiguration {
     @ConditionalOnBean(NamedParameterJdbcTemplate.class)
     public RevisionRepository revisionJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         return new JdbcRevisionRepository(jdbcTemplate);
+    }
+
+    @Bean
+    @ConditionalOnBean(NamedParameterJdbcTemplate.class)
+    @Primary
+    public ConfigEditLockRepository configEditLockJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        return new JdbcConfigEditLockRepository(jdbcTemplate);
     }
 }

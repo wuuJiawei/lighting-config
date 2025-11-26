@@ -19,6 +19,7 @@ import static io.lighting.config.server.web.ApiConstants.DOCS_PATH;
 import static io.lighting.config.server.web.ApiConstants.HEADER_AUTHORIZATION_BEARER_PREFIX;
 import static io.lighting.config.server.web.ApiConstants.HEADER_TOKEN;
 import static io.lighting.config.server.web.ApiConstants.OPENAPI_PATH;
+import static io.lighting.config.server.web.ApiConstants.REQUEST_ATTRIBUTE_AUTH_TOKEN;
 import static io.lighting.config.server.web.ApiConstants.SWAGGER_UI_SEGMENT;
 import static io.lighting.config.server.web.ApiConstants.UNAUTHORIZED_MESSAGE;
 
@@ -51,6 +52,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         }
         String token = resolveToken(request);
         if (authService.authenticate(token)) {
+            request.setAttribute(REQUEST_ATTRIBUTE_AUTH_TOKEN, token);
             filterChain.doFilter(request, response);
             return;
         }
@@ -67,6 +69,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String fallback = request.getHeader(HEADER_TOKEN);
         if (fallback != null && !fallback.isBlank()) {
             return fallback;
+        }
+        String queryToken = request.getParameter("token");
+        if (queryToken == null || queryToken.isBlank()) {
+            queryToken = request.getParameter("access_token");
+        }
+        if (queryToken != null && !queryToken.isBlank()) {
+            return queryToken;
         }
         return null;
     }

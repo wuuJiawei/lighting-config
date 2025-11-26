@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import io.lighting.config.server.lock.EditLockConflictException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -52,5 +54,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleGeneric(Exception ex) {
         log.error("Unhandled error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal error");
+    }
+
+    @ExceptionHandler(EditLockConflictException.class)
+    public ResponseEntity<String> handleEditLock(EditLockConflictException ex) {
+        String ownerName = ex.getLock().getOwnerName();
+        String ownerHint = ex.getLock().ownerFingerprint();
+        String message = "配置正在被其他人编辑，请稍后再试";
+        if (ownerName != null && !ownerName.isBlank()) {
+            message = String.format("配置正在由 %s (%s) 编辑，请稍后再试", ownerName, ownerHint);
+        }
+        return ResponseEntity.status(HttpStatus.LOCKED).body(message);
     }
 }

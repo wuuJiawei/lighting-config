@@ -40,6 +40,19 @@ CREATE TABLE IF NOT EXISTS cache_miss_alert (
     INDEX idx_cache_miss_tenant (tenant, created_at)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS config_edit_lock (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tenant VARCHAR(64) NOT NULL,
+    namespace VARCHAR(128) NOT NULL,
+    app_id VARCHAR(128) NOT NULL,
+    `key` VARCHAR(512) NOT NULL,
+    owner_id VARCHAR(128) NOT NULL,
+    owner_name VARCHAR(128) NULL,
+    expires_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_config_edit_lock (tenant, namespace, app_id, `key`)
+) ENGINE=InnoDB;
+
 -- Sample seed data for demos
 INSERT INTO config_item (tenant, namespace, app_id, `key`, content_type, value, version, tags, enabled)
 VALUES

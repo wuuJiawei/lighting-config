@@ -4,15 +4,20 @@ import io.lighting.config.core.dto.ConfigSelector;
 import io.lighting.config.core.dto.PullQuery;
 import io.lighting.config.core.model.ConfigItem;
 import io.lighting.config.core.util.TimeProvider;
+import io.lighting.config.core.model.ConfigCoordinate;
 import io.lighting.config.server.rest.dto.ConfigResponse;
 import io.lighting.config.server.rest.dto.ConfigUpsertRequest;
 import io.lighting.config.server.rest.dto.RollbackRequest;
+import io.lighting.config.server.lock.ConfigEditLockService;
+import io.lighting.config.server.lock.LockOwner;
+import io.lighting.config.server.lock.LockOwnerResolver;
 import io.lighting.config.server.service.ConfigApplicationService;
 import io.lighting.config.server.config.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,10 +48,17 @@ public class ConsoleConfigController {
 
     private final ConfigApplicationService applicationService;
     private final TimeProvider timeProvider;
+    private final ConfigEditLockService lockService;
+    private final LockOwnerResolver lockOwnerResolver;
 
-    public ConsoleConfigController(ConfigApplicationService applicationService, TimeProvider timeProvider) {
+    public ConsoleConfigController(ConfigApplicationService applicationService,
+                                   TimeProvider timeProvider,
+                                   ConfigEditLockService lockService,
+                                   LockOwnerResolver lockOwnerResolver) {
         this.applicationService = applicationService;
         this.timeProvider = timeProvider;
+        this.lockService = lockService;
+        this.lockOwnerResolver = lockOwnerResolver;
     }
 
     @GetMapping
@@ -81,22 +93,30 @@ public class ConsoleConfigController {
 
     @PostMapping
     @Operation(summary = "Create or update a configuration entry")
-    public ResponseEntity<ConfigResponse> upsert(@Valid @RequestBody ConfigUpsertRequest request) {
+    public ResponseEntity<ConfigResponse> upsert(@Valid @RequestBody ConfigUpsertRequest request,
+                                                 HttpServletRequest httpRequest) {
+        LockOwner owner = lockOwnerResolver.resolve(httpRequest);
+        ConfigCoordinate coordinate = ConfigCoordinate.of(request.getTenant(), request.getNamespace(), request.getAppId(), request.getKey());
+        lockService.ensureEditable(coordinate, owner);
         Instant now = timeProvider.now();
-        ConfigItem saved = applicationService.upsert(request.toConfigItem(now), DEFAULT_ACTOR);
+        ConfigItem saved = applicationService.upsert(request.toConfigItem(now), owner.getName());
         return ResponseEntity.ok(new ConfigResponse(saved));
     }
 
     @PostMapping("/rollback")
     @Operation(summary = "Rollback a configuration entry to a historical version")
-    public ResponseEntity<ConfigResponse> rollback(@Valid @RequestBody RollbackRequest request) {
+    public ResponseEntity<ConfigResponse> rollback(@Valid @RequestBody RollbackRequest request,
+                                                   HttpServletRequest httpRequest) {
+        LockOwner owner = lockOwnerResolver.resolve(httpRequest);
+        ConfigCoordinate coordinate = ConfigCoordinate.of(request.getTenant(), request.getNamespace(), request.getAppId(), request.getKey());
+        lockService.ensureEditable(coordinate, owner);
         ConfigItem rolledBack = applicationService.rollback(
                 request.getTenant(),
                 request.getNamespace(),
                 request.getAppId(),
                 request.getKey(),
                 request.getTargetVersion(),
-                DEFAULT_ACTOR);
+                owner.getName());
         return ResponseEntity.ok(new ConfigResponse(rolledBack));
     }
 
@@ -106,8 +126,12 @@ public class ConsoleConfigController {
             @RequestParam(defaultValue = DEFAULT_TENANT) String tenant,
             @RequestParam(defaultValue = DEFAULT_NAMESPACE) String namespace,
             @RequestParam(name = "appId", defaultValue = DEFAULT_APP_ID) String appId,
-            @RequestParam String key) {
-        applicationService.delete(tenant, namespace, appId, key, DEFAULT_ACTOR);
+            @RequestParam String key,
+            HttpServletRequest httpRequest) {
+        LockOwner owner = lockOwnerResolver.resolve(httpRequest);
+        ConfigCoordinate coordinate = ConfigCoordinate.of(tenant, namespace, appId, key);
+        lockService.ensureEditable(coordinate, owner);
+        applicationService.delete(tenant, namespace, appId, key, owner.getName());
         return ResponseEntity.noContent().build();
     }
 }

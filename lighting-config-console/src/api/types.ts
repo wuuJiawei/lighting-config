@@ -81,3 +81,24 @@ export interface ConfigRevision {
   value?: string
   createdAt: string
 }
+
+export interface ConfigLockPayload {
+  tenant: string
+  namespace: string
+  appId: string
+  key: string
+  ownerName?: string
+}
+
+export interface ConfigEditLockState {
+  tenant: string
+  namespace: string
+  appId: string
+  key: string
+  locked: boolean
+  ownedByMe: boolean
+  ownerName?: string
+  ownerFingerprint?: string
+  expiresAt?: string
+  event?: string
+}

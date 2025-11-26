@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ensureConsoleSessionId, getEditorDisplayName } from '@/lib/console-session'
 
 export const apiClient = axios.create({
   baseURL: '/lighting-config/api',
@@ -6,14 +7,24 @@ export const apiClient = axios.create({
 })
 
 let authToken: string | null = null
+const consoleSessionId = ensureConsoleSessionId()
 
 export function setApiAuthToken(token: string | null) {
   authToken = token
 }
 
+export function getApiAuthToken() {
+  return authToken
+}
+
 apiClient.interceptors.request.use((config) => {
   if (authToken) {
     config.headers.Authorization = `Bearer ${authToken}`
+  }
+  config.headers['X-Lighting-Editor-Id'] = consoleSessionId
+  const editorName = getEditorDisplayName()
+  if (editorName) {
+    config.headers['X-Lighting-Editor-Name'] = editorName
   }
   return config
 })
